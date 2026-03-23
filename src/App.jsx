@@ -5,6 +5,7 @@ import LoginPage from './pages/LoginPage'
 import DashboardPage from './pages/DashboardPage'
 import CharactersPage from './pages/CharactersPage'
 import CharacterEditPage from './pages/CharacterEditPage'
+import MintedAssetsPage from './pages/MintedAssetsPage'
 import IPBrandsPage from './pages/IPBrandsPage';
 import PortalPassesPage from './pages/PortalPassesPage';
 import PortalPassEditPage from './pages/PortalPassEditPage';
@@ -55,6 +56,7 @@ export default function App() {
                 <Route path="characters/:id" element={<CharacterEditPage />} />
                 <Route path="characters/new" element={<CharacterEditPage />} />
                 <Route path="brands" element={<IPBrandsPage />} />
+                <Route path="assets" element={<MintedAssetsPage />} />
                 <Route path="portal-passes" element={<PortalPassesPage />} />
                 <Route path="portal-passes/:id" element={<PortalPassEditPage />} />
               </Routes>

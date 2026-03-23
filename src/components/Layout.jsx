@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/characters', icon: Swords, label: 'Characters' },
   { to: '/brands', icon: Tag, label: 'IP Brands' },
+  { to: '/assets', icon: Users, label: 'Minted Assets' },
   { to: '/portal-passes', icon: Trophy, label: 'Portal Passes' },
 ]
 

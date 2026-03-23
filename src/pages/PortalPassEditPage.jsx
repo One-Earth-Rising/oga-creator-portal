@@ -67,9 +67,13 @@ export default function PortalPassEditPage() {
   // Lookups
   const [characters, setCharacters] = useState([]);
   const [games, setGames] = useState([]);
+  const [brands, setBrands] = useState([]);
 
   // UI
   const [activeSection, setActiveSection] = useState('settings');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInput, setDeleteInput] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const [editingTaskId, setEditingTaskId] = useState(null);
   const [editingRewardId, setEditingRewardId] = useState(null);
   const [showAddTask, setShowAddTask] = useState(false);
@@ -97,6 +101,10 @@ export default function PortalPassEditPage() {
       // Load games for dropdowns
       const { data: gamesData } = await supabase.from('game_projects').select('id, name, engine');
       setGames(gamesData || []);
+
+      // Load brands for dropdown + auto-fill logos
+      const { data: brandsData } = await supabase.rpc('get_ip_brands');
+      setBrands(brandsData || []);
     } catch (err) {
       console.error('Failed to load pass:', err);
     } finally {
@@ -278,6 +286,31 @@ export default function PortalPassEditPage() {
     }
   }
 
+  // ─── Delete pass ──────────────────────────────────────────
+  async function handleDeletePass() {
+    if (deleteInput !== 'DELETE') return;
+    setDeleting(true);
+    try {
+      const { data, error } = await supabase.rpc('delete_portal_pass', { p_pass_id: id });
+      if (error) throw error;
+      navigate('/portal-passes');
+    } catch (err) {
+      console.error('Failed to delete pass:', err);
+      setDeleting(false);
+    }
+  }
+
+  // ─── Brand selection (auto-fill logos) ────────────────────
+  function handleBrandSelect(brandName) {
+    const brand = brands.find((b) => b.name === brandName);
+    setPass((prev) => ({
+      ...prev,
+      brand_name: brandName,
+      brand_logo_url: brand?.logo_url || prev.brand_logo_url || '',
+      brand_card_logo_url: brand?.logo_url || prev.brand_card_logo_url || '',
+    }));
+  }
+
   // ─── Pass field updater ───────────────────────────────────
   function updatePass(field, value) {
     setPass((prev) => ({ ...prev, [field]: value }));
@@ -365,8 +398,8 @@ export default function PortalPassEditPage() {
                 key={key}
                 onClick={() => setActiveSection(key)}
                 className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase rounded-md transition-colors whitespace-nowrap ${activeSection === key
-                    ? 'bg-oga-green/20 text-oga-green'
-                    : 'text-gray-400 hover:text-white'
+                  ? 'bg-oga-green/20 text-oga-green'
+                  : 'text-gray-400 hover:text-white'
                   }`}
               >
                 <Icon size={14} />
@@ -441,13 +474,19 @@ export default function PortalPassEditPage() {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="oga-label">Brand Name</label>
-                  <input
-                    type="text"
+                  <label className="oga-label">Brand</label>
+                  <select
                     value={pass.brand_name || ''}
-                    onChange={(e) => updatePass('brand_name', e.target.value)}
-                    className="oga-input w-full"
-                  />
+                    onChange={(e) => handleBrandSelect(e.target.value)}
+                    className="oga-select w-full"
+                  >
+                    <option value="">No brand</option>
+                    {brands.map((b) => (
+                      <option key={b.id} value={b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="oga-label">Linked Character</label>
@@ -504,8 +543,8 @@ export default function PortalPassEditPage() {
                   <button
                     onClick={() => updatePass('is_active', !pass.is_active)}
                     className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${pass.is_active
-                        ? 'border-oga-green/40 bg-oga-green/10 text-oga-green'
-                        : 'border-gray-700 bg-oga-charcoal text-gray-400'
+                      ? 'border-oga-green/40 bg-oga-green/10 text-oga-green'
+                      : 'border-gray-700 bg-oga-charcoal text-gray-400'
                       }`}
                   >
                     {pass.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
@@ -542,6 +581,53 @@ export default function PortalPassEditPage() {
                     <img src={pass.brand_card_logo_url} alt="Card logo" className="h-12 mt-2 rounded bg-black/50 p-1" />
                   )}
                 </div>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="pt-4 mt-4 border-t border-red-900/30">
+                <button
+                  onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                  className="text-xs text-red-400/60 hover:text-red-400 transition-colors flex items-center gap-1"
+                >
+                  <Trash2 size={12} />
+                  Delete this pass...
+                </button>
+
+                {showDeleteConfirm && (
+                  <div className="mt-3 p-4 bg-red-950/30 border border-red-900/40 rounded-lg">
+                    <p className="text-sm text-red-400 font-semibold mb-1">
+                      This will permanently delete this pass, all its tasks, and all its rewards.
+                    </p>
+                    <p className="text-xs text-red-400/60 mb-3">
+                      Type <span className="font-mono font-bold text-red-300">DELETE</span> to confirm.
+                    </p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="text"
+                        value={deleteInput}
+                        onChange={(e) => setDeleteInput(e.target.value)}
+                        placeholder="Type DELETE"
+                        className="oga-input w-40 text-sm font-mono border-red-900/50 focus:border-red-500"
+                      />
+                      <button
+                        onClick={handleDeletePass}
+                        disabled={deleteInput !== 'DELETE' || deleting}
+                        className={`px-4 py-2 rounded-lg text-xs font-bold uppercase transition-all ${deleteInput === 'DELETE'
+                            ? 'bg-red-600 text-white hover:bg-red-500'
+                            : 'bg-gray-800 text-gray-600 cursor-not-allowed'
+                          }`}
+                      >
+                        {deleting ? 'Deleting...' : 'Permanently Delete'}
+                      </button>
+                      <button
+                        onClick={() => { setShowDeleteConfirm(false); setDeleteInput(''); }}
+                        className="text-xs text-gray-500 hover:text-white"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1218,8 +1304,8 @@ function MilestonePreview({ tasks, rewards, xpPerLevel, maxLevel, specialRewardN
               {/* Node dot */}
               <div
                 className={`relative z-10 flex items-center justify-center w-6 h-6 rounded-full border-2 shrink-0 ${isReward
-                    ? 'border-yellow-500 bg-yellow-500/20'
-                    : 'border-gray-600 bg-oga-charcoal'
+                  ? 'border-yellow-500 bg-yellow-500/20'
+                  : 'border-gray-600 bg-oga-charcoal'
                   }`}
               >
                 {isReward ? (

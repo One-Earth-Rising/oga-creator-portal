@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', end: true },
   { to: '/characters', icon: Swords, label: 'Characters' },
   { to: '/brands', icon: Tag, label: 'IP Brands' },
+  { to: '/portal-passes', icon: Trophy, label: 'Portal Passes' },
 ]
 
 export default function Layout({ children }) {

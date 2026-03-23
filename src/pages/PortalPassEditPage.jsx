@@ -6,27 +6,43 @@ import {
   Zap, Trophy, Star, Calendar, Eye, EyeOff, GripVertical,
   Swords, Handshake, QrCode, Gamepad2, Users, Package,
   PenTool, MapPin, AlertTriangle, Check, X, Settings, Gift,
-  Shield, ChevronRight
+  Shield, ChevronRight, ToggleLeft, ToggleRight
 } from 'lucide-react';
 
 // ─── Task type config ───────────────────────────────────────
 const TASK_TYPES = [
-  { value: 'acquire_character', label: 'Acquire Character', icon: Package, color: 'text-oga-green',
-    description: 'Own this OGA', fields: ['target_character_id'] },
-  { value: 'irl_autograph', label: 'IRL Autograph', icon: PenTool, color: 'text-purple-400',
-    description: 'Get autographed by approved signer', fields: [] },
-  { value: 'irl_location_verify', label: 'IRL Location', icon: MapPin, color: 'text-blue-400',
-    description: 'Get scanned at an event', fields: [] },
-  { value: 'play_in_game', label: 'Play in Game', icon: Gamepad2, color: 'text-cyan-400',
-    description: 'Use character in a specific game', fields: ['target_game_id'] },
-  { value: 'trade', label: 'Trade', icon: Swords, color: 'text-orange-400',
-    description: 'Complete a trade', fields: ['required_count'] },
-  { value: 'lend', label: 'Lend', icon: Handshake, color: 'text-yellow-400',
-    description: 'Lend this character to a friend', fields: ['required_count'] },
-  { value: 'collect_set', label: 'Collect Set', icon: Users, color: 'text-pink-400',
-    description: 'Own all characters in an IP collection', fields: [] },
-  { value: 'custom', label: 'Custom', icon: Star, color: 'text-gray-400',
-    description: 'Free-form task', fields: ['required_count'] },
+  {
+    value: 'acquire_character', label: 'Acquire Character', icon: Package, color: 'text-oga-green',
+    description: 'Own this OGA', fields: ['target_character_id']
+  },
+  {
+    value: 'irl_autograph', label: 'IRL Autograph', icon: PenTool, color: 'text-purple-400',
+    description: 'Get autographed by approved signer', fields: []
+  },
+  {
+    value: 'irl_location_verify', label: 'IRL Location', icon: MapPin, color: 'text-blue-400',
+    description: 'Get scanned at an event', fields: []
+  },
+  {
+    value: 'play_in_game', label: 'Play in Game', icon: Gamepad2, color: 'text-cyan-400',
+    description: 'Use character in a specific game', fields: ['target_game_id']
+  },
+  {
+    value: 'trade', label: 'Trade', icon: Swords, color: 'text-orange-400',
+    description: 'Complete a trade', fields: ['required_count']
+  },
+  {
+    value: 'lend', label: 'Lend', icon: Handshake, color: 'text-yellow-400',
+    description: 'Lend this character to a friend', fields: ['required_count']
+  },
+  {
+    value: 'collect_set', label: 'Collect Set', icon: Users, color: 'text-pink-400',
+    description: 'Own all characters in an IP collection', fields: []
+  },
+  {
+    value: 'custom', label: 'Custom', icon: Star, color: 'text-gray-400',
+    description: 'Free-form task', fields: ['required_count']
+  },
 ];
 
 function getTaskTypeConfig(type) {
@@ -348,11 +364,10 @@ export default function PortalPassEditPage() {
               <button
                 key={key}
                 onClick={() => setActiveSection(key)}
-                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase rounded-md transition-colors whitespace-nowrap ${
-                  activeSection === key
+                className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold uppercase rounded-md transition-colors whitespace-nowrap ${activeSection === key
                     ? 'bg-oga-green/20 text-oga-green'
                     : 'text-gray-400 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon size={14} />
                 {label}
@@ -488,11 +503,10 @@ export default function PortalPassEditPage() {
                   <label className="oga-label">Status</label>
                   <button
                     onClick={() => updatePass('is_active', !pass.is_active)}
-                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${
-                      pass.is_active
+                    className={`w-full flex items-center justify-center gap-2 px-4 py-2 rounded-lg border text-sm font-semibold transition-colors ${pass.is_active
                         ? 'border-oga-green/40 bg-oga-green/10 text-oga-green'
                         : 'border-gray-700 bg-oga-charcoal text-gray-400'
-                    }`}
+                      }`}
                   >
                     {pass.is_active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
                     {pass.is_active ? 'ACTIVE' : 'INACTIVE'}
@@ -1203,11 +1217,10 @@ function MilestonePreview({ tasks, rewards, xpPerLevel, maxLevel, specialRewardN
             <div key={i} className="flex items-start gap-3 relative pl-2">
               {/* Node dot */}
               <div
-                className={`relative z-10 flex items-center justify-center w-6 h-6 rounded-full border-2 shrink-0 ${
-                  isReward
+                className={`relative z-10 flex items-center justify-center w-6 h-6 rounded-full border-2 shrink-0 ${isReward
                     ? 'border-yellow-500 bg-yellow-500/20'
                     : 'border-gray-600 bg-oga-charcoal'
-                }`}
+                  }`}
               >
                 {isReward ? (
                   <Trophy size={10} className="text-yellow-500" />
@@ -1220,9 +1233,8 @@ function MilestonePreview({ tasks, rewards, xpPerLevel, maxLevel, specialRewardN
               <div className="flex-1 min-w-0 -mt-0.5">
                 <div className="flex items-center gap-2">
                   <span
-                    className={`text-xs font-semibold truncate ${
-                      isReward ? 'text-yellow-400' : 'text-white'
-                    }`}
+                    className={`text-xs font-semibold truncate ${isReward ? 'text-yellow-400' : 'text-white'
+                      }`}
                   >
                     {node.label}
                   </span>

@@ -5,6 +5,7 @@ import {
   Users,
   Swords,
   Tag,
+  Trophy,
   LogOut,
 } from 'lucide-react'
 
@@ -44,10 +45,9 @@ export default function Layout({ children }) {
               to={to}
               end={end}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all duration-150 ${
-                  isActive
-                    ? 'bg-oga-green/10 text-oga-green border border-oga-green/20'
-                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                `flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-bold uppercase tracking-wider transition-all duration-150 ${isActive
+                  ? 'bg-oga-green/10 text-oga-green border border-oga-green/20'
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`
               }
             >

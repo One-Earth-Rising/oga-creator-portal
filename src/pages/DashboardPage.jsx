@@ -37,7 +37,7 @@ export default function DashboardPage() {
     { label: 'Characters', value: stats?.characters, icon: Swords, to: '/characters', color: 'text-oga-green' },
     { label: 'IP Brands', value: stats?.brands, icon: Tag, to: '/brands', color: 'text-blue-400' },
     { label: 'Minted Assets', value: stats?.assets, icon: Users, to: '/assets', color: 'text-purple-400' },
-    { label: 'QR Scans', value: stats?.scans, icon: QrCode, color: 'text-yellow-400' },
+    { label: 'QR Scans', value: stats?.scans, icon: QrCode, to: '/scans', color: 'text-yellow-400' },
   ]
 
   return (

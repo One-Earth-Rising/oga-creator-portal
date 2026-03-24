@@ -6,6 +6,7 @@ import {
   Swords,
   Tag,
   Trophy,
+  QrCode,
   LogOut,
 } from 'lucide-react'
 
@@ -14,7 +15,9 @@ const NAV_ITEMS = [
   { to: '/characters', icon: Swords, label: 'Characters' },
   { to: '/brands', icon: Tag, label: 'IP Brands' },
   { to: '/assets', icon: Users, label: 'Minted Assets' },
-  { to: '/portal-passes', icon: Trophy, label: 'Portal Passes' },
+  { to: '/scans', icon: QrCode, label: 'QR Scans' },
+  { to: '/portal-passes', icon: Trophy,
+  QrCode, label: 'Portal Passes' },
 ]
 
 export default function Layout({ children }) {

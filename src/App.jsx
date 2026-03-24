@@ -6,9 +6,11 @@ import DashboardPage from './pages/DashboardPage'
 import CharactersPage from './pages/CharactersPage'
 import CharacterEditPage from './pages/CharacterEditPage'
 import MintedAssetsPage from './pages/MintedAssetsPage'
+import ScansPage from './pages/ScansPage'
 import IPBrandsPage from './pages/IPBrandsPage';
 import PortalPassesPage from './pages/PortalPassesPage';
 import PortalPassEditPage from './pages/PortalPassEditPage';
+
 
 function ProtectedRoute({ children }) {
   const { user, isAdmin, loading } = useAuth()
@@ -57,6 +59,7 @@ export default function App() {
                 <Route path="characters/new" element={<CharacterEditPage />} />
                 <Route path="brands" element={<IPBrandsPage />} />
                 <Route path="assets" element={<MintedAssetsPage />} />
+                <Route path="scans" element={<ScansPage />} />
                 <Route path="portal-passes" element={<PortalPassesPage />} />
                 <Route path="portal-passes/:id" element={<PortalPassEditPage />} />
               </Routes>

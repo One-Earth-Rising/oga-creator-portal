@@ -191,10 +191,6 @@ export default function CharacterEditPage() {
           </h1>
           {!isNew && <p className="text-white/30 text-sm font-mono">{form.id}</p>}
         </div>
-        <button onClick={handleSave} disabled={saving} className="oga-btn-primary flex items-center gap-2">
-          {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-          {saving ? 'Saving...' : 'Save Character'}
-        </button>
       </div>
 
       {/* Messages */}
@@ -417,6 +413,19 @@ export default function CharacterEditPage() {
         {/* Preview (1 col) */}
         <div className="lg:col-span-1">
           <CharacterPreview data={previewData} />
+        </div>
+      </div>
+
+      {/* Sticky Bottom Save Bar */}
+      <div className="fixed bottom-0 left-0 right-0 bg-oga-black/95 backdrop-blur border-t border-oga-grey z-50">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-end gap-4">
+          <Link to="/characters" className="px-6 py-3 rounded-lg border border-oga-grey text-white/50 text-sm font-bold uppercase tracking-wider hover:border-white/30 hover:text-white/70 transition-colors">
+            Cancel
+          </Link>
+          <button onClick={handleSave} disabled={saving} className="oga-btn-primary flex items-center gap-2">
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            {saving ? 'Saving...' : 'Save Character'}
+          </button>
         </div>
       </div>
     </div>

@@ -194,10 +194,17 @@ export default function ScansPage() {
 
                     {/* Asset */}
                     <td className="p-4">
-                      <div className="font-bold uppercase tracking-wide">
-                        {scan.character_name}
-                        <span className="text-oga-green font-mono ml-1">#{scan.mint_number}</span>
-                      </div>
+                      
+                        <a href={`https://oga.oneearthrising.com/#/asset/${scan.asset_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group"
+                      >
+                        <div className="font-bold uppercase tracking-wide group-hover:text-oga-green transition-colors">
+                          {scan.character_name}
+                          <span className="text-oga-green font-mono ml-1">#{scan.mint_number}</span>
+                        </div>
+                      </a>
                     </td>
 
                     {/* Scanner */}

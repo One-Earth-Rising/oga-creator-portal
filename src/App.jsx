@@ -9,7 +9,9 @@ import MintedAssetsPage from './pages/MintedAssetsPage'
 import ScansPage from './pages/ScansPage'
 import IPBrandsPage from './pages/IPBrandsPage';
 import PortalPassesPage from './pages/PortalPassesPage';
-import PortalPassBuilderPage from './pages/PortalPassBuilderPage';
+import PortalPassBuilderPage from './pages/PortalPassBuilderPage'
+import FactionsPage from './pages/FactionsPage';
+
 
 
 function ProtectedRoute({ children }) {
@@ -62,6 +64,7 @@ export default function App() {
                 <Route path="scans" element={<ScansPage />} />
                 <Route path="portal-passes" element={<PortalPassesPage />} />
                 <Route path="/portal-passes/:id" element={<PortalPassBuilderPage />} />
+                <Route path="/factions" element={<FactionsPage />} />
               </Routes>
             </Layout>
           </ProtectedRoute>

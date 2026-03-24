@@ -11,6 +11,7 @@ import {
   LogOut,
   Menu,
   X,
+  Shield,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: '/assets', icon: Users, label: 'Minted Assets' },
   { to: '/scans', icon: QrCode, label: 'QR Scans' },
   { to: '/portal-passes', icon: Trophy, label: 'Portal Passes' },
+  { to: '/factions', icon: Shield, label: 'Factions' },
 ]
 
 export default function Layout({ children }) {

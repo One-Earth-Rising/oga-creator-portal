@@ -5,7 +5,7 @@ import {
   ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp,
   GripVertical, Swords, QrCode, MapPin, Gamepad2, ArrowLeftRight,
   HandHelping, LayoutGrid, Wrench, Trophy, Star, Gift, Clock,
-  Eye, EyeOff, AlertCircle, Check, X, MoveUp, MoveDown, Sparkles
+  Eye, EyeOff, AlertCircle, Check, X, MoveUp, MoveDown, Sparkles, Copy
 } from 'lucide-react';
 
 // ─── Task Type Registry ─────────────────────────────────────────────
@@ -204,6 +204,128 @@ function Toggle({ checked, onChange, label }) {
       </div>
       {label && <span className="text-sm text-gray-300">{label}</span>}
     </label>
+  );
+}
+
+// ─── Image Uploader ─────────────────────────────────────────────────
+function ImageUploader({ value, onChange, bucket = 'characters', pathPrefix = 'portal-pass', label, returnFullUrl = true }) {
+  const [uploading, setUploading] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
+  const [error, setError] = useState(null);
+
+  const resolveUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/${bucket}/${path}`;
+  };
+
+  const handleFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are allowed');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File must be under 5MB');
+      return;
+    }
+
+    setUploading(true);
+    setError(null);
+
+    try {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const fileName = `${pathPrefix}/${Date.now()}_${Math.random().toString(36).slice(2, 6)}.${ext}`;
+
+      const { data, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, file, { upsert: true, contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      const resultPath = returnFullUrl
+        ? `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/${bucket}/${data.path}`
+        : data.path;
+
+      onChange(resultPath);
+    } catch (err) {
+      console.error('Upload error:', err);
+      setError(`Upload failed: ${err.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragOver(false);
+    handleFile(e.dataTransfer.files[0]);
+  };
+
+  const handleInputChange = (e) => {
+    handleFile(e.target.files[0]);
+  };
+
+  const previewUrl = resolveUrl(value);
+
+  return (
+    <div className="space-y-2">
+      <div
+        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={handleDrop}
+        className={`relative border-2 border-dashed rounded-lg transition-colors cursor-pointer
+          ${dragOver ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-[#2C2C2C] hover:border-[#39FF14]/40'}
+          ${previewUrl ? 'p-2' : 'p-6'}`}
+      >
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleInputChange}
+          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        />
+
+        {uploading ? (
+          <div className="flex flex-col items-center gap-2 py-4">
+            <div className="w-6 h-6 border-2 border-[#39FF14] border-t-transparent rounded-full animate-spin" />
+            <span className="text-xs text-gray-400">Uploading...</span>
+          </div>
+        ) : previewUrl ? (
+          <div className="flex items-center gap-3">
+            <div className="w-16 h-16 rounded-lg border border-[#2C2C2C] bg-[#121212] overflow-hidden flex-shrink-0">
+              <img
+                src={previewUrl}
+                alt={label || 'Preview'}
+                className="w-full h-full object-cover"
+                onError={(e) => { e.target.src = ''; e.target.alt = '!'; }}
+              />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs text-gray-400 truncate">{value}</p>
+              <p className="text-[10px] text-gray-600 mt-0.5">Drop new image to replace</p>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); onChange(''); }}
+              className="text-gray-600 hover:text-red-400 p-1 flex-shrink-0"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="w-10 h-10 rounded-lg bg-[#2C2C2C] flex items-center justify-center">
+              <Plus size={18} className="text-gray-500" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-400">Drop image here or click to browse</p>
+              <p className="text-[10px] text-gray-600 mt-0.5">PNG, JPG, WebP · Max 5MB</p>
+            </div>
+          </div>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-400">{error}</p>}
+    </div>
   );
 }
 
@@ -447,27 +569,19 @@ function RewardCard({ reward, onChange, onDelete }) {
           </Field>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Image Path" hint="Relative path in Supabase storage (e.g., pass-rewards/golden-headband.png)">
-              <TextInput value={reward.image} onChange={(v) => update('image', v)} placeholder="pass-rewards/reward.png" />
+            <Field label="Reward Image">
+              <ImageUploader
+                value={reward.image}
+                onChange={(v) => update('image', v)}
+                pathPrefix="pass-rewards"
+                returnFullUrl={false}
+                label={reward.name || 'Reward'}
+              />
             </Field>
             <Field label="Sort Order">
               <NumberInput value={reward.sort_order} onChange={(v) => update('sort_order', v)} min={0} />
             </Field>
           </div>
-
-          {reward.image && (
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-lg border border-[#2C2C2C] bg-[#121212] overflow-hidden flex items-center justify-center">
-                <img
-                  src={`https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/characters/${reward.image}`}
-                  alt={reward.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              </div>
-              <span className="text-xs text-gray-500">Image preview</span>
-            </div>
-          )}
         </div>
       )}
     </div>
@@ -748,6 +862,81 @@ export default function PortalPassBuilderPage() {
     setRewards(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ── Duplicate Pass ────────────────────────────────────────────────
+  const handleDuplicate = async () => {
+    setSaving(true);
+    try {
+      const newId = crypto.randomUUID();
+      const newSlug = `${pass.slug}_copy_${Date.now()}`;
+
+      // 1. Create the duplicated pass
+      const { error: passError } = await supabase.rpc('upsert_portal_pass', {
+        p_id: newId,
+        p_slug: newSlug,
+        p_name: `${pass.name} (Copy)`,
+        p_type: pass.type,
+        p_brand_name: pass.brand_name || null,
+        p_brand_logo_url: pass.brand_logo_url || null,
+        p_brand_card_logo_url: pass.brand_card_logo_url || null,
+        p_season_name: pass.season_name || null,
+        p_description: pass.description || null,
+        p_character_id: pass.character_id || null,
+        p_special_reward_name: pass.special_reward_name || null,
+        p_special_reward_description: pass.special_reward_description || null,
+        p_special_reward_image_url: pass.special_reward_image_url || null,
+        p_special_reward_character_id: pass.special_reward_character_id || null,
+        p_gameplay_videos: JSON.stringify(pass.gameplay_videos || []),
+        p_is_active: false,
+        p_total_levels: pass.total_levels || 50,
+        p_xp_per_level: pass.xp_per_level || 100,
+        p_expires_at: pass.expires_at ? new Date(pass.expires_at).toISOString() : null,
+      });
+      if (passError) throw passError;
+
+      // 2. Duplicate all tasks
+      for (const task of tasks) {
+        const { error: taskError } = await supabase.rpc('upsert_portal_pass_task', {
+          p_id: crypto.randomUUID(),
+          p_pass_id: newId,
+          p_title: task.title,
+          p_description: task.description || null,
+          p_task_type: task.task_type,
+          p_target_character_id: task.target_character_id || null,
+          p_target_value: task.target_value || null,
+          p_xp_reward: task.xp_reward || 100,
+          p_order_index: task.order_index || 0,
+          p_level_requirement: task.level_requirement || 0,
+          p_target_game_id: task.target_game_id || null,
+          p_required_count: task.required_count || 1,
+        });
+        if (taskError) throw taskError;
+      }
+
+      // 3. Duplicate all rewards
+      for (const reward of rewards) {
+        const { error: rewardError } = await supabase.rpc('upsert_portal_pass_reward', {
+          p_id: `rew_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+          p_pass_id: newId.toString(),
+          p_name: reward.name,
+          p_image: reward.image || '',
+          p_level_required: reward.level_required || 1,
+          p_is_unlocked: false,
+          p_sort_order: reward.sort_order || 0,
+          p_description: reward.description || null,
+        });
+        if (rewardError) throw rewardError;
+      }
+
+      showToast('Pass duplicated — opening copy');
+      navigate(`/portal-passes/${newId}`);
+    } catch (err) {
+      console.error('Duplicate error:', err);
+      showToast(`Duplicate failed: ${err.message}`, 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   // ── Delete Pass ───────────────────────────────────────────────────
   const handleDeletePass = async () => {
     setDeleting(true);
@@ -926,6 +1115,17 @@ export default function PortalPassBuilderPage() {
         </div>
         <div className="flex items-center gap-3">
           <Toggle checked={pass.is_active} onChange={(v) => updatePass('is_active', v)} label="Active" />
+          {!isNew && (
+            <button
+              onClick={handleDuplicate}
+              disabled={saving}
+              className="oga-btn-secondary flex items-center gap-2"
+              title="Duplicate this pass"
+            >
+              <Copy size={16} />
+              <span className="hidden md:inline">Duplicate</span>
+            </button>
+          )}
           <button
             onClick={saveAll}
             disabled={saving}
@@ -989,11 +1189,21 @@ export default function PortalPassBuilderPage() {
               <Field label="Brand Name">
                 <TextInput value={pass.brand_name} onChange={(v) => updatePass('brand_name', v)} placeholder="e.g., Final Boss Sour" />
               </Field>
-              <Field label="Brand Logo URL">
-                <TextInput value={pass.brand_logo_url} onChange={(v) => updatePass('brand_logo_url', v)} placeholder="https://..." />
+              <Field label="Brand Logo">
+                <ImageUploader
+                  value={pass.brand_logo_url}
+                  onChange={(v) => updatePass('brand_logo_url', v)}
+                  pathPrefix="brands"
+                  label="Brand logo"
+                />
               </Field>
-              <Field label="Brand Card Logo URL">
-                <TextInput value={pass.brand_card_logo_url} onChange={(v) => updatePass('brand_card_logo_url', v)} placeholder="https://..." />
+              <Field label="Brand Card Logo">
+                <ImageUploader
+                  value={pass.brand_card_logo_url}
+                  onChange={(v) => updatePass('brand_card_logo_url', v)}
+                  pathPrefix="brands"
+                  label="Brand card logo"
+                />
               </Field>
             </div>
           </div>
@@ -1110,22 +1320,14 @@ export default function PortalPassBuilderPage() {
               placeholder="Describe the ultimate reward"
             />
           </Field>
-          <Field label="Image URL" hint="Full URL to the reward image in Supabase storage">
-            <TextInput value={pass.special_reward_image_url} onChange={(v) => updatePass('special_reward_image_url', v)} placeholder="https://..." />
+          <Field label="Reward Image">
+            <ImageUploader
+              value={pass.special_reward_image_url}
+              onChange={(v) => updatePass('special_reward_image_url', v)}
+              pathPrefix="pass-special"
+              label="Special reward"
+            />
           </Field>
-          {pass.special_reward_image_url && (
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-lg border border-[#2C2C2C] bg-[#121212] overflow-hidden flex items-center justify-center">
-                <img
-                  src={pass.special_reward_image_url}
-                  alt="Special reward"
-                  className="w-full h-full object-cover"
-                  onError={(e) => { e.target.style.display = 'none'; }}
-                />
-              </div>
-              <span className="text-xs text-gray-500">Special reward preview</span>
-            </div>
-          )}
         </div>
       </Section>
 

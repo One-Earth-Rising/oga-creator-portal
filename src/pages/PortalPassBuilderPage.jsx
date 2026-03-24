@@ -752,21 +752,16 @@ export default function PortalPassBuilderPage() {
   const handleDeletePass = async () => {
     setDeleting(true);
     try {
-      // Delete all tasks first
-      for (const task of tasks) {
-        if (!task._isTemp) {
-          await supabase.rpc('delete_portal_pass_task', { p_task_id: task.id });
-        }
-      }
-      // Delete all rewards
-      for (const reward of rewards) {
-        if (!reward._isTemp) {
-          await supabase.rpc('delete_portal_pass_reward', { p_reward_id: reward.id });
-        }
-      }
-      // Delete the pass itself
-      const { error } = await supabase.rpc('delete_portal_pass', { p_pass_id: pass.id });
+      // The RPC cascades tasks + rewards internally, so just call delete_portal_pass
+      const { data, error } = await supabase.rpc('delete_portal_pass', { p_pass_id: pass.id });
+      console.log('Delete RPC response:', { data, error });
+
       if (error) throw error;
+
+      // RPC returns JSON — check for app-level error
+      if (data && data.error) {
+        throw new Error(data.error);
+      }
 
       showToast('Portal Pass deleted');
       navigate('/portal-passes');

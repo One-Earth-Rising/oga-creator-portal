@@ -360,10 +360,11 @@ function AssetCardModal({ asset, onClose, onViewOwner, onViewHistory, onCopy, co
     Legendary: 'bg-yellow-500/20 text-yellow-400',
   }
 
-  const imageUrl = asset.thumbnail
-    ? (asset.thumbnail.startsWith('http')
-        ? asset.thumbnail
-        : `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/creator-uploads/${asset.thumbnail}`)
+  const imagePath = asset.hero_image || asset.thumbnail_image || asset.thumbnail
+  const imageUrl = imagePath
+    ? (imagePath.startsWith('http')
+        ? imagePath
+        : `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/characters/${imagePath}`)
     : null
 
   return (
@@ -387,7 +388,7 @@ function AssetCardModal({ asset, onClose, onViewOwner, onViewHistory, onCopy, co
             <img
               src={imageUrl}
               alt={asset.character_name}
-              className="w-full h-full object-contain"
+              className="w-full h-full object-cover object-top"
               onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
             />
           ) : null}

@@ -103,12 +103,14 @@ export default function CharacterEditPage() {
       let thumbPath = form.thumbnail
 
       if (heroFile) {
-        const path = `heroes/${form.id}.${heroFile.name.split('.').pop()}`
+        const ts = Date.now()
+        const path = `heroes/${form.id}_${ts}.${heroFile.name.split('.').pop()}`
         heroPath = await uploadCharacterImage(heroFile, path)
       }
 
       if (thumbFile) {
-        const path = `thumbs/${form.id}.${thumbFile.name.split('.').pop()}`
+        const ts = Date.now()
+        const path = `thumbs/${form.id}_${ts}.${thumbFile.name.split('.').pop()}`
         thumbPath = await uploadCharacterImage(thumbFile, path)
       }
 

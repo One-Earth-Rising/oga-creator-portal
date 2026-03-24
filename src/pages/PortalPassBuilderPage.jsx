@@ -651,7 +651,7 @@ export default function PortalPassBuilderPage() {
             passFields.expires_at = new Date(passFields.expires_at).toISOString().slice(0, 16);
           }
 
-          setPass(prev => ({ ...prev, ...passFields }));
+          setPass(prev => ({ ...prev, ...passFields, id: passFields.id || id }));
           setTasks((loadedTasks || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
           setRewards((loadedRewards || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
         }

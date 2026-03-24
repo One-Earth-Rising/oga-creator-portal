@@ -870,7 +870,7 @@ export default function PortalPassBuilderPage() {
       const newSlug = `${pass.slug}_copy_${Date.now()}`;
 
       // 1. Create the duplicated pass
-      const { error: passError } = await supabase.rpc('upsert_portal_pass', {
+      const { data: passData, error: passError } = await supabase.rpc('upsert_portal_pass', {
         p_id: newId,
         p_slug: newSlug,
         p_name: `${pass.name} (Copy)`,
@@ -891,11 +891,13 @@ export default function PortalPassBuilderPage() {
         p_xp_per_level: pass.xp_per_level || 100,
         p_expires_at: pass.expires_at ? new Date(pass.expires_at).toISOString() : null,
       });
+      console.log('Duplicate pass RPC:', JSON.stringify(passData), 'error:', passError);
       if (passError) throw passError;
+      if (passData && passData.error) throw new Error(passData.error);
 
       // 2. Duplicate all tasks
       for (const task of tasks) {
-        const { error: taskError } = await supabase.rpc('upsert_portal_pass_task', {
+        const { data: taskData, error: taskError } = await supabase.rpc('upsert_portal_pass_task', {
           p_id: crypto.randomUUID(),
           p_pass_id: newId,
           p_title: task.title,
@@ -909,7 +911,9 @@ export default function PortalPassBuilderPage() {
           p_target_game_id: task.target_game_id || null,
           p_required_count: task.required_count || 1,
         });
+        console.log('Duplicate task RPC:', task.title, JSON.stringify(taskData), 'error:', taskError);
         if (taskError) throw taskError;
+        if (taskData && taskData.error) throw new Error(taskData.error);
       }
 
       // 3. Duplicate all rewards

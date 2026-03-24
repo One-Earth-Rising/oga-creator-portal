@@ -866,12 +866,11 @@ export default function PortalPassBuilderPage() {
   const handleDuplicate = async () => {
     setSaving(true);
     try {
-      const newId = crypto.randomUUID();
       const newSlug = `${pass.slug}_copy_${Date.now()}`;
 
-      // 1. Create the duplicated pass
+      // 1. Create the duplicated pass (null ID triggers INSERT path)
       const { data: passData, error: passError } = await supabase.rpc('upsert_portal_pass', {
-        p_id: newId,
+        p_id: null,
         p_slug: newSlug,
         p_name: `${pass.name} (Copy)`,
         p_type: pass.type,
@@ -894,6 +893,9 @@ export default function PortalPassBuilderPage() {
       console.log('Duplicate pass RPC:', JSON.stringify(passData), 'error:', passError);
       if (passError) throw passError;
       if (passData && passData.error) throw new Error(passData.error);
+
+      const newId = passData.id;
+      if (!newId) throw new Error('No ID returned from pass creation');
 
       // 2. Duplicate all tasks
       for (const task of tasks) {

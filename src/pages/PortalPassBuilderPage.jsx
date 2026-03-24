@@ -900,7 +900,7 @@ export default function PortalPassBuilderPage() {
       // 2. Duplicate all tasks
       for (const task of tasks) {
         const { data: taskData, error: taskError } = await supabase.rpc('upsert_portal_pass_task', {
-          p_id: crypto.randomUUID(),
+          p_id: null,
           p_pass_id: newId,
           p_title: task.title,
           p_description: task.description || null,
@@ -921,7 +921,7 @@ export default function PortalPassBuilderPage() {
       // 3. Duplicate all rewards
       for (const reward of rewards) {
         const { error: rewardError } = await supabase.rpc('upsert_portal_pass_reward', {
-          p_id: `rew_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`,
+          p_id: null,
           p_pass_id: newId.toString(),
           p_name: reward.name,
           p_image: reward.image || '',

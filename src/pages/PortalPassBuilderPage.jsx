@@ -612,6 +612,8 @@ export default function PortalPassBuilderPage() {
   const [rewards, setRewards] = useState([]);
   const [deletedTaskIds, setDeletedTaskIds] = useState([]);
   const [deletedRewardIds, setDeletedRewardIds] = useState([]);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   // Reference data for dropdowns
   const [characters, setCharacters] = useState([]);
@@ -744,6 +746,35 @@ export default function PortalPassBuilderPage() {
       setDeletedRewardIds(prev => [...prev, reward.id]);
     }
     setRewards(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // ── Delete Pass ───────────────────────────────────────────────────
+  const handleDeletePass = async () => {
+    setDeleting(true);
+    try {
+      // Delete all tasks first
+      for (const task of tasks) {
+        if (!task._isTemp) {
+          await supabase.rpc('delete_portal_pass_task', { p_task_id: task.id });
+        }
+      }
+      // Delete all rewards
+      for (const reward of rewards) {
+        if (!reward._isTemp) {
+          await supabase.rpc('delete_portal_pass_reward', { p_reward_id: reward.id });
+        }
+      }
+      // Delete the pass itself
+      const { error } = await supabase.rpc('delete_portal_pass', { p_pass_id: pass.id });
+      if (error) throw error;
+
+      showToast('Portal Pass deleted');
+      navigate('/portal-passes');
+    } catch (err) {
+      console.error('Delete error:', err);
+      showToast(`Delete failed: ${err.message}`, 'error');
+      setDeleting(false);
+    }
   };
 
   // ── Save All ──────────────────────────────────────────────────────
@@ -1110,6 +1141,54 @@ export default function PortalPassBuilderPage() {
           xpPerLevel={pass.xp_per_level || 100}
         />
       </Section>
+
+      {/* ─── Danger Zone ─────────────────────────────────────────── */}
+      {!isNew && (
+        <div className="oga-card mb-4 border-red-500/20">
+          <div className="px-5 py-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-red-400 font-bold text-sm uppercase tracking-wider">Danger Zone</h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  Permanently delete this Portal Pass and all its tasks and rewards. This cannot be undone.
+                </p>
+              </div>
+              {confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-red-400 mr-2">Are you sure?</span>
+                  <button
+                    onClick={handleDeletePass}
+                    disabled={deleting}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-bold rounded-lg transition-colors"
+                  >
+                    {deleting ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Trash2 size={14} />
+                    )}
+                    {deleting ? 'Deleting...' : 'Yes, Delete Forever'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="oga-btn-secondary !py-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-red-500/30 text-red-400 
+                    hover:bg-red-500/10 text-sm font-bold rounded-lg transition-colors"
+                >
+                  <Trash2 size={14} />
+                  Delete Portal Pass
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── Bottom Save Bar ─────────────────────────────────────── */}
       <div className="sticky bottom-0 bg-[#0A0A0A]/90 backdrop-blur-sm border-t border-[#2C2C2C] -mx-4 md:-mx-8 px-4 md:px-8 py-4 mt-6 flex items-center justify-between">

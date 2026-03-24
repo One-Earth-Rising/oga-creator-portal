@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { supabase } from '../lib/supabase'
 import {
   Search, QrCode, Copy, ExternalLink, X, ChevronDown, ChevronUp,
-  Shield, Verified, History
+  Shield, Verified, History, ArrowRight, Eye
 } from 'lucide-react'
 
 export default function ScansPage() {
@@ -14,6 +14,7 @@ export default function ScansPage() {
   const [sortField, setSortField] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
   const [copiedId, setCopiedId] = useState(null)
+  const [cardAsset, setCardAsset] = useState(null)
 
   useEffect(() => {
     loadScans()
@@ -194,17 +195,12 @@ export default function ScansPage() {
 
                     {/* Asset */}
                     <td className="p-4">
-                      
-                        <a href={`https://oga.oneearthrising.com/#/asset/${scan.asset_id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="group"
-                      >
+                      <button onClick={() => setCardAsset(scan)} className="group text-left">
                         <div className="font-bold uppercase tracking-wide group-hover:text-oga-green transition-colors">
                           {scan.character_name}
                           <span className="text-oga-green font-mono ml-1">#{scan.mint_number}</span>
                         </div>
-                      </a>
+                      </button>
                     </td>
 
                     {/* Scanner */}
@@ -263,6 +259,130 @@ export default function ScansPage() {
           )}
         </div>
       )}
+
+      {/* Asset Card Modal */}
+      {cardAsset && (
+        <AssetCardModal
+          asset={cardAsset}
+          onClose={() => setCardAsset(null)}
+          onCopy={copyToClipboard}
+          copiedId={copiedId}
+        />
+      )}
+    </div>
+  )
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ASSET CARD MODAL (shared pattern from MintedAssetsPage)
+// ═══════════════════════════════════════════════════════════════
+
+function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
+  const rarityGlow = {
+    Common: 'border-white/20',
+    Uncommon: 'border-green-500/40 shadow-[0_0_30px_rgba(34,197,94,0.15)]',
+    Rare: 'border-blue-500/40 shadow-[0_0_30px_rgba(59,130,246,0.15)]',
+    Epic: 'border-purple-500/40 shadow-[0_0_30px_rgba(168,85,247,0.15)]',
+    Legendary: 'border-yellow-500/40 shadow-[0_0_30px_rgba(234,179,8,0.15)]',
+  }
+
+  const rarityBadge = {
+    Common: 'bg-white/10 text-white/60',
+    Uncommon: 'bg-green-500/20 text-green-400',
+    Rare: 'bg-blue-500/20 text-blue-400',
+    Epic: 'bg-purple-500/20 text-purple-400',
+    Legendary: 'bg-yellow-500/20 text-yellow-400',
+  }
+
+  const imageUrl = asset.hero_image
+    ? (asset.hero_image.startsWith('http')
+        ? asset.hero_image
+        : `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/characters/${asset.hero_image}`)
+    : null
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/85" />
+      <div
+        className={`relative bg-oga-charcoal border-2 rounded-2xl max-w-sm w-full overflow-hidden ${rarityGlow[asset.rarity] || rarityGlow.Common}`}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 p-1.5 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+        >
+          <X size={14} className="text-white/50" />
+        </button>
+
+        <div className="relative w-full aspect-square bg-oga-black flex items-center justify-center overflow-hidden">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={asset.character_name}
+              className="w-full h-full object-cover object-top"
+              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex' }}
+            />
+          ) : null}
+          <div className={`${imageUrl ? 'hidden' : 'flex'} w-full h-full items-center justify-center`}>
+            <div className="text-center">
+              <div className="text-6xl font-black uppercase tracking-wider text-white/5">{asset.character_name?.[0]}</div>
+              <div className="text-xs text-white/15 uppercase tracking-widest mt-2">No Image</div>
+            </div>
+          </div>
+
+          <div className="absolute top-3 left-3 px-2.5 py-1 bg-black/70 rounded-lg backdrop-blur-sm">
+            <span className="font-mono text-oga-green font-bold text-sm">#{asset.mint_number}</span>
+          </div>
+
+          {asset.rarity && (
+            <div className="absolute top-3 right-12">
+              <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm ${rarityBadge[asset.rarity] || rarityBadge.Common}`}>
+                {asset.rarity}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="p-5">
+          <div className="mb-4">
+            <h2 className="text-xl font-bold uppercase tracking-wider">{asset.character_name}</h2>
+            {asset.ip_brand_name && (
+              <div className="text-xs text-white/30 uppercase tracking-widest mt-1">{asset.ip_brand_name}</div>
+            )}
+          </div>
+
+          <div className="bg-oga-black rounded-lg border border-oga-grey/50 p-3 mb-4">
+            <div className="text-[10px] text-white/25 uppercase tracking-widest mb-1.5">Current Owner</div>
+            <div className="font-bold text-sm uppercase tracking-wide">
+              {asset.owner_name || 'Unknown'}
+            </div>
+            <div className="text-xs text-white/30">
+              {asset.owner_email || '—'}
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => onCopy(asset.asset_id, 'card-' + asset.asset_id)}
+              className="flex-1 oga-btn-secondary text-xs py-2.5 flex items-center justify-center gap-1.5"
+            >
+              {copiedId === 'card-' + asset.asset_id ? (
+                <span className="text-oga-green">Copied!</span>
+              ) : (
+                <><Copy size={12} /> <span className="whitespace-nowrap">Copy ID</span></>
+              )}
+            </button>
+            
+              <a href={`https://oga.oneearthrising.com/#/asset/${asset.asset_id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex-1 oga-btn-secondary text-xs py-2.5 flex items-center justify-center gap-1.5"
+            >
+              <ExternalLink size={12} /> Verify
+            </a>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

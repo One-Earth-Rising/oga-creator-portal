@@ -979,10 +979,10 @@ export default function PortalPassBuilderPage() {
     setSaving(true);
     try {
       // 1. Save pass
-      const passId = isNew ? crypto.randomUUID() : pass.id;
+      const passIdParam = isNew ? null : (pass.id || id);
 
-      const { error: passError } = await supabase.rpc('upsert_portal_pass', {
-        p_id: passId,
+      const { data: passResult, error: passError } = await supabase.rpc('upsert_portal_pass', {
+        p_id: passIdParam,
         p_slug: pass.slug,
         p_name: pass.name,
         p_type: pass.type,
@@ -1003,6 +1003,9 @@ export default function PortalPassBuilderPage() {
         p_expires_at: pass.expires_at ? new Date(pass.expires_at).toISOString() : null,
       });
       if (passError) throw passError;
+      if (passResult && passResult.error) throw new Error(passResult.error);
+
+      const passId = passResult?.id || pass.id || id;
 
       // 2. Delete removed tasks
       for (const taskId of deletedTaskIds) {
@@ -1016,9 +1019,8 @@ export default function PortalPassBuilderPage() {
 
       // 4. Upsert tasks
       for (const task of tasks) {
-        const taskId = task._isTemp ? crypto.randomUUID() : task.id;
         const { error: taskError } = await supabase.rpc('upsert_portal_pass_task', {
-          p_id: taskId,
+          p_id: task._isTemp ? null : task.id,
           p_pass_id: passId,
           p_title: task.title,
           p_description: task.description || null,
@@ -1045,9 +1047,8 @@ export default function PortalPassBuilderPage() {
 
       // 6. Upsert rewards
       for (const reward of rewards) {
-        const rewardId = reward._isTemp ? `rew_${Date.now()}_${Math.random().toString(36).slice(2, 5)}` : reward.id;
         const { error: rewardError } = await supabase.rpc('upsert_portal_pass_reward', {
-          p_id: rewardId,
+          p_id: reward._isTemp ? null : reward.id,
           p_pass_id: passId.toString(),
           p_name: reward.name,
           p_image: reward.image || '',

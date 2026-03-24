@@ -1,4 +1,5 @@
-import { NavLink } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
   LayoutDashboard,
@@ -8,6 +9,8 @@ import {
   Trophy,
   QrCode,
   LogOut,
+  Menu,
+  X,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -16,34 +19,81 @@ const NAV_ITEMS = [
   { to: '/brands', icon: Tag, label: 'IP Brands' },
   { to: '/assets', icon: Users, label: 'Minted Assets' },
   { to: '/scans', icon: QrCode, label: 'QR Scans' },
-  { to: '/portal-passes', icon: Trophy,
-  QrCode, label: 'Portal Passes' },
+  { to: '/portal-passes', icon: Trophy, label: 'Portal Passes' },
 ]
 
 export default function Layout({ children }) {
   const { user, signOut } = useAuth()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const location = useLocation()
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setSidebarOpen(false)
+  }, [location.pathname])
+
+  // Close sidebar on escape key
+  useEffect(() => {
+    function handleEscape(e) {
+      if (e.key === 'Escape') setSidebarOpen(false)
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  // Prevent body scroll when sidebar open on mobile
+  useEffect(() => {
+    if (sidebarOpen) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [sidebarOpen])
 
   return (
     <div className="min-h-screen bg-oga-black flex">
+      {/* Mobile backdrop */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-30 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 bg-oga-charcoal border-r border-oga-grey flex flex-col fixed h-full z-10">
+      <aside className={`
+        fixed h-full z-40 bg-oga-charcoal border-r border-oga-grey flex flex-col
+        w-64 transition-transform duration-200 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+        lg:translate-x-0
+      `}>
         {/* Logo */}
         <div className="p-6 border-b border-oga-grey">
-          <div className="flex items-center gap-3">
-            <img
-              src="https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/oga-files/oga_logo.png"
-              alt="OGA"
-              className="w-10 h-10 object-contain"
-            />
-            <div>
-              <div className="font-bold text-sm uppercase tracking-wider">Creator Portal</div>
-              <div className="text-xs text-white/40">One Earth Rising</div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img
+                src="https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/oga-files/oga_logo.png"
+                alt="OGA"
+                className="w-10 h-10 object-contain"
+              />
+              <div>
+                <div className="font-bold text-sm uppercase tracking-wider">Creator Portal</div>
+                <div className="text-xs text-white/40">One Earth Rising</div>
+              </div>
             </div>
+            {/* Close button — mobile only */}
+            <button
+              onClick={() => setSidebarOpen(false)}
+              className="p-1 hover:bg-white/5 rounded transition-colors lg:hidden"
+            >
+              <X size={18} className="text-white/40" />
+            </button>
           </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {NAV_ITEMS.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
@@ -76,8 +126,25 @@ export default function Layout({ children }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 ml-64 min-h-screen">
-        <div className="p-8">
+      <main className="flex-1 min-h-screen lg:ml-64">
+        {/* Mobile top bar */}
+        <div className="sticky top-0 z-20 bg-oga-black/90 backdrop-blur-sm border-b border-oga-grey/50 px-4 py-3 flex items-center gap-3 lg:hidden">
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-2 hover:bg-white/5 rounded-lg transition-colors"
+          >
+            <Menu size={20} className="text-white/60" />
+          </button>
+          <img
+            src="https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/oga-files/oga_logo.png"
+            alt="OGA"
+            className="w-7 h-7 object-contain"
+          />
+          <span className="font-bold text-xs uppercase tracking-wider text-white/60">Creator Portal</span>
+        </div>
+
+        {/* Page content — responsive padding */}
+        <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
       </main>

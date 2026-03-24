@@ -456,7 +456,7 @@ function AssetCardModal({ asset, onClose, onViewOwner, onViewHistory, onCopy, co
               {copiedId === 'card-' + asset.asset_id ? (
                 <span className="text-oga-green">Copied!</span>
               ) : (
-                <><Copy size={12} /> Copy ID</>
+                <><Copy size={12} /> <span className="whitespace-nowrap">Copy ID</span></>
               )}
             </button>
             <a

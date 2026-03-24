@@ -754,7 +754,7 @@ export default function PortalPassBuilderPage() {
     try {
       // The RPC cascades tasks + rewards internally, so just call delete_portal_pass
       const { data, error } = await supabase.rpc('delete_portal_pass', { p_pass_id: pass.id });
-      console.log('Delete RPC response:', { data, error });
+      console.log('Delete RPC response:', JSON.stringify(data), 'error:', error);
 
       if (error) throw error;
 

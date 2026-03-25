@@ -424,6 +424,9 @@ export default function CharacterEditPage() {
         </div>
       </div>
 
+{/* Spacer for sticky bottom bar */}
+      <div className="h-24" />
+      
       {/* Sticky Bottom Save Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-oga-black/95 backdrop-blur border-t border-oga-grey z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-end gap-4">

@@ -5,7 +5,8 @@ import {
   ArrowLeft, Save, Plus, Trash2, ChevronDown, ChevronUp,
   GripVertical, Swords, QrCode, MapPin, Gamepad2, ArrowLeftRight,
   HandHelping, LayoutGrid, Wrench, Trophy, Star, Gift, Clock,
-  Eye, EyeOff, AlertCircle, Check, X, MoveUp, MoveDown, Sparkles, Copy
+  Eye, EyeOff, AlertCircle, Check, X, MoveUp, MoveDown, Sparkles, Copy,
+  Image, Link, Megaphone, BookOpen, HelpCircle
 } from 'lucide-react';
 
 // ─── Task Type Registry ─────────────────────────────────────────────
@@ -76,6 +77,15 @@ const PASS_TYPES = [
   { value: 'character_pass', label: 'Character Pass' },
   { value: 'event_pass', label: 'Event Pass' },
   { value: 'seasonal', label: 'Seasonal' },
+];
+
+// ─── CTA Type Options ───────────────────────────────────────────────
+const CTA_TYPES = [
+  { value: 'none', label: 'None' },
+  { value: 'enter_code', label: 'Enter Code' },
+  { value: 'scan_qr', label: 'Scan QR Code' },
+  { value: 'purchase', label: 'Purchase' },
+  { value: 'external_link', label: 'External Link' },
 ];
 
 // ─── Helper: Generate temp ID for new items ─────────────────────────
@@ -588,9 +598,233 @@ function RewardCard({ reward, onChange, onDelete }) {
   );
 }
 
+// ─── Promo Block Card (JSONB editor for promo_sections) ─────────────
+function PromoBlockCard({ block, index, onChange, onDelete }) {
+  const [expanded, setExpanded] = useState(block._isNew || false);
+
+  const update = (field, value) => {
+    const updated = { ...block, [field]: value };
+    delete updated._isNew;
+    onChange(updated);
+  };
+
+  const updateButton = (btnIndex, field, value) => {
+    const buttons = [...(block.buttons || [])];
+    buttons[btnIndex] = { ...buttons[btnIndex], [field]: value };
+    update('buttons', buttons);
+  };
+
+  const addButton = () => {
+    const buttons = [...(block.buttons || []), { label: '', url: '', style: 'primary' }];
+    update('buttons', buttons);
+  };
+
+  const removeButton = (btnIndex) => {
+    const buttons = (block.buttons || []).filter((_, i) => i !== btnIndex);
+    update('buttons', buttons);
+  };
+
+  return (
+    <div className="border border-[#2C2C2C] rounded-lg bg-[#0A0A0A] overflow-hidden group">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="w-7 h-7 rounded flex items-center justify-center bg-[#C084FC]/10 text-[#C084FC] flex-shrink-0">
+          <Megaphone size={14} />
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex-1 text-left text-sm font-semibold text-white truncate hover:text-[#39FF14] transition-colors"
+        >
+          {block.title || `Promo Block ${index + 1}`}
+        </button>
+        {block.badge && (
+          <span className="text-xs text-[#C084FC] bg-[#C084FC]/10 px-2 py-0.5 rounded font-bold uppercase">
+            {block.badge}
+          </span>
+        )}
+        <button onClick={() => setExpanded(!expanded)} className="text-gray-500 hover:text-white">
+          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+        <button
+          onClick={onDelete}
+          className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-2 border-t border-[#2C2C2C] space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Title">
+              <TextInput value={block.title} onChange={(v) => update('title', v)} placeholder="e.g., Find FBS Near You" />
+            </Field>
+            <Field label="Badge" hint="Short label shown above title">
+              <TextInput value={block.badge} onChange={(v) => update('badge', v)} placeholder="e.g., STORE LOCATOR" />
+            </Field>
+          </div>
+          <Field label="Highlight" hint="Bold callout line">
+            <TextInput value={block.highlight} onChange={(v) => update('highlight', v)} placeholder="e.g., Available at Walmart, Target, and more" />
+          </Field>
+          <Field label="Body">
+            <TextArea value={block.body} onChange={(v) => update('body', v)} placeholder="Descriptive body text" rows={3} />
+          </Field>
+
+          {/* Buttons sub-editor */}
+          <div className="border-t border-[#2C2C2C] pt-3 mt-3">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-2 font-bold">Buttons</p>
+            <div className="space-y-2">
+              {(block.buttons || []).map((btn, bi) => (
+                <div key={bi} className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={btn.label || ''}
+                    onChange={(e) => updateButton(bi, 'label', e.target.value)}
+                    placeholder="Label"
+                    className="oga-input flex-1"
+                  />
+                  <input
+                    type="text"
+                    value={btn.url || ''}
+                    onChange={(e) => updateButton(bi, 'url', e.target.value)}
+                    placeholder="https://..."
+                    className="oga-input flex-1"
+                  />
+                  <select
+                    value={btn.style || 'primary'}
+                    onChange={(e) => updateButton(bi, 'style', e.target.value)}
+                    className="oga-select w-28"
+                  >
+                    <option value="primary">Primary</option>
+                    <option value="secondary">Secondary</option>
+                    <option value="outline">Outline</option>
+                  </select>
+                  <button onClick={() => removeButton(bi)} className="text-gray-600 hover:text-red-400">
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+              <button
+                onClick={addButton}
+                className="text-xs text-gray-500 hover:text-[#39FF14] flex items-center gap-1"
+              >
+                <Plus size={12} /> Add Button
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Explainer Block Card (JSONB editor for task_explainers) ────────
+function ExplainerBlockCard({ block, index, onChange, onDelete }) {
+  const [expanded, setExpanded] = useState(block._isNew || false);
+
+  const update = (field, value) => {
+    const updated = { ...block, [field]: value };
+    delete updated._isNew;
+    onChange(updated);
+  };
+
+  return (
+    <div className="border border-[#2C2C2C] rounded-lg bg-[#0A0A0A] overflow-hidden group">
+      <div className="flex items-center gap-3 px-4 py-3">
+        <div className="w-7 h-7 rounded flex items-center justify-center bg-[#00BFFF]/10 text-[#00BFFF] flex-shrink-0">
+          <HelpCircle size={14} />
+        </div>
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="flex-1 text-left text-sm font-semibold text-white truncate hover:text-[#39FF14] transition-colors"
+        >
+          {block.title || `Explainer ${index + 1}`}
+        </button>
+        {block.task_type && TASK_TYPES[block.task_type] && (
+          <span
+            className="text-xs px-2 py-0.5 rounded font-bold uppercase"
+            style={{ backgroundColor: `${TASK_TYPES[block.task_type].color}15`, color: TASK_TYPES[block.task_type].color }}
+          >
+            {TASK_TYPES[block.task_type].label}
+          </span>
+        )}
+        <button onClick={() => setExpanded(!expanded)} className="text-gray-500 hover:text-white">
+          {expanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+        <button
+          onClick={onDelete}
+          className="text-gray-600 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <Trash2 size={14} />
+        </button>
+      </div>
+
+      {expanded && (
+        <div className="px-4 pb-4 pt-2 border-t border-[#2C2C2C] space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Related Task Type">
+              <Select
+                value={block.task_type}
+                onChange={(v) => update('task_type', v)}
+                placeholder="Any / General"
+                options={Object.entries(TASK_TYPES).map(([k, t]) => ({ value: k, label: t.label }))}
+              />
+            </Field>
+            <Field label="Icon" hint="Material icon name">
+              <TextInput value={block.icon} onChange={(v) => update('icon', v)} placeholder="e.g., qr_code, handshake" />
+            </Field>
+          </div>
+          <Field label="Title">
+            <TextInput value={block.title} onChange={(v) => update('title', v)} placeholder="e.g., What is QR Scanning?" />
+          </Field>
+          <Field label="Body">
+            <TextArea value={block.body} onChange={(v) => update('body', v)} placeholder="Explain the feature to players..." rows={4} />
+          </Field>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Milestone Preview ──────────────────────────────────────────────
 function MilestonePreview({ tasks, rewards, totalLevels, xpPerLevel }) {
-  if (!totalLevels || totalLevels <= 0) return null;
+  const hasData = tasks.length > 0 || rewards.length > 0;
+  const hasXpCurve = totalLevels > 0 && xpPerLevel > 0;
+
+  // Empty state — no XP curve configured
+  if (!hasXpCurve) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <Eye size={32} className="mx-auto mb-2 opacity-30" />
+        <p className="text-sm">Configure the XP curve in Pass Settings to see the milestone preview.</p>
+      </div>
+    );
+  }
+
+  // Empty state — no tasks or rewards yet
+  if (!hasData) {
+    return (
+      <div className="space-y-4 pt-4">
+        <div className="flex items-center gap-4 text-xs text-gray-400">
+          <span>Total Levels: <strong className="text-white">{totalLevels}</strong></span>
+          <span>XP/Level: <strong className="text-white">{xpPerLevel}</strong></span>
+          <span>Total XP: <strong className="text-[#39FF14]">{(totalLevels * xpPerLevel).toLocaleString()}</strong></span>
+        </div>
+        <div className="relative">
+          <div className="h-2 bg-[#2C2C2C] rounded-full relative overflow-visible">
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#39FF14]/20 to-[#39FF14]/5" />
+          </div>
+          <div className="flex justify-between text-[9px] text-gray-600 mt-2 px-1">
+            <span>Lv.0</span>
+            <span>Lv.{Math.round(totalLevels * 0.25)}</span>
+            <span>Lv.{Math.round(totalLevels * 0.5)}</span>
+            <span>Lv.{Math.round(totalLevels * 0.75)}</span>
+            <span>Lv.{totalLevels}</span>
+          </div>
+        </div>
+        <p className="text-center text-xs text-gray-600 mt-2">Add tasks and rewards to populate the timeline.</p>
+      </div>
+    );
+  }
 
   const totalXP = totalLevels * xpPerLevel;
   const markers = [];
@@ -626,7 +860,7 @@ function MilestonePreview({ tasks, rewards, totalLevels, xpPerLevel }) {
   return (
     <div className="space-y-4 pt-4">
       {/* XP summary */}
-      <div className="flex items-center gap-4 text-xs text-gray-400">
+      <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
         <span>Total Levels: <strong className="text-white">{totalLevels}</strong></span>
         <span>XP/Level: <strong className="text-white">{xpPerLevel}</strong></span>
         <span>Total XP: <strong className="text-[#39FF14]">{totalXP.toLocaleString()}</strong></span>
@@ -699,7 +933,7 @@ export default function PortalPassBuilderPage() {
   const [toast, setToast] = useState(null);
   const [showTaskPalette, setShowTaskPalette] = useState(false);
 
-  // Pass data
+  // Pass data — includes Sprint 42 detail fields (10 new)
   const [pass, setPass] = useState({
     id: null,
     slug: '',
@@ -720,6 +954,17 @@ export default function PortalPassBuilderPage() {
     total_levels: 50,
     xp_per_level: 100,
     expires_at: '',
+    // ── Sprint 42 detail fields ───────────────────────────────
+    headline: '',
+    subheadline: '',
+    hero_banner_url: '',
+    cta_type: 'none',
+    cta_label: '',
+    cta_url: '',
+    completion_reward_title: '',
+    completion_reward_description: '',
+    promo_sections: [],
+    task_explainers: [],
   });
 
   const [tasks, setTasks] = useState([]);
@@ -764,6 +1009,18 @@ export default function PortalPassBuilderPage() {
           if (passFields.expires_at) {
             passFields.expires_at = new Date(passFields.expires_at).toISOString().slice(0, 16);
           }
+
+          // Parse JSONB fields that may come as strings
+          if (typeof passFields.promo_sections === 'string') {
+            try { passFields.promo_sections = JSON.parse(passFields.promo_sections); } catch { passFields.promo_sections = []; }
+          }
+          if (typeof passFields.task_explainers === 'string') {
+            try { passFields.task_explainers = JSON.parse(passFields.task_explainers); } catch { passFields.task_explainers = []; }
+          }
+
+          // Ensure arrays
+          passFields.promo_sections = passFields.promo_sections || [];
+          passFields.task_explainers = passFields.task_explainers || [];
 
           setPass(prev => ({ ...prev, ...passFields, id: passFields.id || id }));
           setTasks((loadedTasks || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
@@ -862,33 +1119,97 @@ export default function PortalPassBuilderPage() {
     setRewards(prev => prev.filter((_, i) => i !== index));
   };
 
+  // ── Promo Sections Management ─────────────────────────────────────
+  const addPromoBlock = () => {
+    updatePass('promo_sections', [
+      ...pass.promo_sections,
+      { _isNew: true, title: '', badge: '', highlight: '', body: '', buttons: [] },
+    ]);
+  };
+
+  const updatePromoBlock = (index, updated) => {
+    const blocks = [...pass.promo_sections];
+    blocks[index] = updated;
+    updatePass('promo_sections', blocks);
+  };
+
+  const deletePromoBlock = (index) => {
+    updatePass('promo_sections', pass.promo_sections.filter((_, i) => i !== index));
+  };
+
+  // ── Task Explainers Management ────────────────────────────────────
+  const addExplainerBlock = () => {
+    updatePass('task_explainers', [
+      ...pass.task_explainers,
+      { _isNew: true, task_type: '', title: '', body: '', icon: '' },
+    ]);
+  };
+
+  const updateExplainerBlock = (index, updated) => {
+    const blocks = [...pass.task_explainers];
+    blocks[index] = updated;
+    updatePass('task_explainers', blocks);
+  };
+
+  const deleteExplainerBlock = (index) => {
+    updatePass('task_explainers', pass.task_explainers.filter((_, i) => i !== index));
+  };
+
+  // ── Build the 29-param RPC payload ────────────────────────────────
+  const buildPassPayload = (overrides = {}) => ({
+    p_slug: pass.slug,
+    p_name: pass.name,
+    p_type: pass.type,
+    p_brand_name: pass.brand_name || null,
+    p_brand_logo_url: pass.brand_logo_url || null,
+    p_brand_card_logo_url: pass.brand_card_logo_url || null,
+    p_season_name: pass.season_name || null,
+    p_description: pass.description || null,
+    p_character_id: pass.character_id || null,
+    p_special_reward_name: pass.special_reward_name || null,
+    p_special_reward_description: pass.special_reward_description || null,
+    p_special_reward_image_url: pass.special_reward_image_url || null,
+    p_special_reward_character_id: pass.special_reward_character_id || null,
+    p_gameplay_videos: JSON.stringify(pass.gameplay_videos || []),
+    p_is_active: overrides.is_active !== undefined ? overrides.is_active : pass.is_active,
+    p_total_levels: pass.total_levels || 50,
+    p_xp_per_level: pass.xp_per_level || 100,
+    p_expires_at: pass.expires_at ? new Date(pass.expires_at).toISOString() : null,
+    // ── Sprint 42 detail fields (params 20–29) ────────────────
+    p_headline: pass.headline || null,
+    p_subheadline: pass.subheadline || null,
+    p_hero_banner_url: pass.hero_banner_url || null,
+    p_cta_type: pass.cta_type || 'none',
+    p_cta_label: pass.cta_label || null,
+    p_cta_url: pass.cta_url || null,
+    p_completion_reward_title: pass.completion_reward_title || null,
+    p_completion_reward_description: pass.completion_reward_description || null,
+    p_promo_sections: JSON.stringify(cleanJsonbArray(pass.promo_sections)),
+    p_task_explainers: JSON.stringify(cleanJsonbArray(pass.task_explainers)),
+    ...overrides,
+  });
+
+  // Strip _isNew flags before persisting JSONB arrays
+  const cleanJsonbArray = (arr) => {
+    if (!Array.isArray(arr)) return [];
+    return arr.map(item => {
+      const cleaned = { ...item };
+      delete cleaned._isNew;
+      return cleaned;
+    });
+  };
+
   // ── Duplicate Pass ────────────────────────────────────────────────
   const handleDuplicate = async () => {
     setSaving(true);
     try {
       const newSlug = `${pass.slug}_copy_${Date.now()}`;
 
-      // 1. Create the duplicated pass (null ID triggers INSERT path)
       const { data: passData, error: passError } = await supabase.rpc('upsert_portal_pass', {
         p_id: null,
+        ...buildPassPayload({ is_active: false }),
         p_slug: newSlug,
         p_name: `${pass.name} (Copy)`,
-        p_type: pass.type,
-        p_brand_name: pass.brand_name || null,
-        p_brand_logo_url: pass.brand_logo_url || null,
-        p_brand_card_logo_url: pass.brand_card_logo_url || null,
-        p_season_name: pass.season_name || null,
-        p_description: pass.description || null,
-        p_character_id: pass.character_id || null,
-        p_special_reward_name: pass.special_reward_name || null,
-        p_special_reward_description: pass.special_reward_description || null,
-        p_special_reward_image_url: pass.special_reward_image_url || null,
-        p_special_reward_character_id: pass.special_reward_character_id || null,
-        p_gameplay_videos: JSON.stringify(pass.gameplay_videos || []),
-        p_is_active: false,
-        p_total_levels: pass.total_levels || 50,
-        p_xp_per_level: pass.xp_per_level || 100,
-        p_expires_at: pass.expires_at ? new Date(pass.expires_at).toISOString() : null,
       });
       console.log('Duplicate pass RPC:', JSON.stringify(passData), 'error:', passError);
       if (passError) throw passError;
@@ -897,7 +1218,7 @@ export default function PortalPassBuilderPage() {
       const newId = passData.id;
       if (!newId) throw new Error('No ID returned from pass creation');
 
-      // 2. Duplicate all tasks
+      // Duplicate all tasks
       for (const task of tasks) {
         const { data: taskData, error: taskError } = await supabase.rpc('upsert_portal_pass_task', {
           p_id: null,
@@ -918,7 +1239,7 @@ export default function PortalPassBuilderPage() {
         if (taskData && taskData.error) throw new Error(taskData.error);
       }
 
-      // 3. Duplicate all rewards
+      // Duplicate all rewards
       for (const reward of rewards) {
         const { error: rewardError } = await supabase.rpc('upsert_portal_pass_reward', {
           p_id: null,
@@ -947,18 +1268,13 @@ export default function PortalPassBuilderPage() {
   const handleDeletePass = async () => {
     setDeleting(true);
     try {
-      // The RPC cascades tasks + rewards internally, so just call delete_portal_pass
       const passIdToDelete = pass.id || id;
       console.log('Deleting pass with ID:', passIdToDelete, 'pass.id:', pass.id, 'url id:', id);
       const { data, error } = await supabase.rpc('delete_portal_pass', { p_pass_id: passIdToDelete });
       console.log('Delete RPC response:', JSON.stringify(data), 'error:', error);
 
       if (error) throw error;
-
-      // RPC returns JSON — check for app-level error
-      if (data && data.error) {
-        throw new Error(data.error);
-      }
+      if (data && data.error) throw new Error(data.error);
 
       showToast('Portal Pass deleted');
       navigate('/portal-passes');
@@ -978,29 +1294,12 @@ export default function PortalPassBuilderPage() {
 
     setSaving(true);
     try {
-      // 1. Save pass
+      // 1. Save pass (29 params)
       const passIdParam = isNew ? null : (pass.id || id);
 
       const { data: passResult, error: passError } = await supabase.rpc('upsert_portal_pass', {
         p_id: passIdParam,
-        p_slug: pass.slug,
-        p_name: pass.name,
-        p_type: pass.type,
-        p_brand_name: pass.brand_name || null,
-        p_brand_logo_url: pass.brand_logo_url || null,
-        p_brand_card_logo_url: pass.brand_card_logo_url || null,
-        p_season_name: pass.season_name || null,
-        p_description: pass.description || null,
-        p_character_id: pass.character_id || null,
-        p_special_reward_name: pass.special_reward_name || null,
-        p_special_reward_description: pass.special_reward_description || null,
-        p_special_reward_image_url: pass.special_reward_image_url || null,
-        p_special_reward_character_id: pass.special_reward_character_id || null,
-        p_gameplay_videos: JSON.stringify(pass.gameplay_videos || []),
-        p_is_active: pass.is_active,
-        p_total_levels: pass.total_levels || 50,
-        p_xp_per_level: pass.xp_per_level || 100,
-        p_expires_at: pass.expires_at ? new Date(pass.expires_at).toISOString() : null,
+        ...buildPassPayload(),
       });
       if (passError) throw passError;
       if (passResult && passResult.error) throw new Error(passResult.error);
@@ -1068,7 +1367,6 @@ export default function PortalPassBuilderPage() {
       if (isNew) {
         navigate(`/portal-passes/${passId}`, { replace: true });
       } else {
-        // Reload to get fresh IDs for any temp items
         await loadData();
       }
     } catch (err) {
@@ -1235,6 +1533,64 @@ export default function PortalPassBuilderPage() {
         </div>
       </Section>
 
+      {/* ─── NEW: Hero & Branding ────────────────────────────────── */}
+      <Section title="Hero & Branding" icon={Image} defaultOpen={false}>
+        <div className="space-y-4 pt-4">
+          <p className="text-xs text-gray-500">
+            These fields control the hero area of the Portal Pass detail page shown to players.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Field label="Headline" hint="Bold hero text, e.g., BUY CANDY. UNLOCK LEGENDS.">
+              <TextInput value={pass.headline} onChange={(v) => updatePass('headline', v)} placeholder="e.g., BUY CANDY. UNLOCK LEGENDS." />
+            </Field>
+            <Field label="Subheadline" hint="Secondary descriptive text">
+              <TextInput value={pass.subheadline} onChange={(v) => updatePass('subheadline', v)} placeholder="e.g., Collect all 4 Final Boss Sour characters" />
+            </Field>
+          </div>
+          <Field label="Hero Banner Image" hint="Full-width top banner on the detail page (recommended 1200×400)">
+            <ImageUploader
+              value={pass.hero_banner_url}
+              onChange={(v) => updatePass('hero_banner_url', v)}
+              pathPrefix="pass-banners"
+              label="Hero banner"
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* ─── NEW: Call to Action ──────────────────────────────────── */}
+      <Section title="Call to Action" icon={Link} defaultOpen={false}>
+        <div className="space-y-4 pt-4">
+          <p className="text-xs text-gray-500">
+            Primary CTA button shown on the Portal Pass detail page. Choose "None" to hide it.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <Field label="CTA Type">
+              <Select value={pass.cta_type} onChange={(v) => updatePass('cta_type', v)} options={CTA_TYPES} />
+            </Field>
+            {pass.cta_type && pass.cta_type !== 'none' && (
+              <Field label="Button Label">
+                <TextInput
+                  value={pass.cta_label}
+                  onChange={(v) => updatePass('cta_label', v)}
+                  placeholder={
+                    pass.cta_type === 'enter_code' ? 'ENTER CODE' :
+                    pass.cta_type === 'scan_qr' ? 'SCAN QR CODE' :
+                    pass.cta_type === 'purchase' ? 'BUY NOW' :
+                    'LEARN MORE'
+                  }
+                />
+              </Field>
+            )}
+            {(pass.cta_type === 'purchase' || pass.cta_type === 'external_link') && (
+              <Field label="URL" hint="External link destination">
+                <TextInput value={pass.cta_url} onChange={(v) => updatePass('cta_url', v)} placeholder="https://..." />
+              </Field>
+            )}
+          </div>
+        </div>
+      </Section>
+
       {/* ─── Tasks ───────────────────────────────────────────────── */}
       <Section title="Tasks" icon={Swords} count={tasks.length} defaultOpen={true}>
         <div className="space-y-2 pt-4">
@@ -1335,16 +1691,107 @@ export default function PortalPassBuilderPage() {
               label="Special reward"
             />
           </Field>
+
+          {/* ── Completion Reward Preview (consumer-facing copy) ──── */}
+          <div className="border-t border-[#2C2C2C] pt-4 mt-4">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Consumer-Facing Completion Copy</p>
+            <p className="text-xs text-gray-600 mb-3">
+              These are shown on the Portal Pass detail page as the completion incentive. Can differ from the internal reward name above.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="Completion Reward Title" hint="e.g., UNLOCK THE FINAL BOSS">
+                <TextInput value={pass.completion_reward_title} onChange={(v) => updatePass('completion_reward_title', v)} placeholder="e.g., UNLOCK THE FINAL BOSS" />
+              </Field>
+              <Field label="Completion Reward Description">
+                <TextArea
+                  value={pass.completion_reward_description}
+                  onChange={(v) => updatePass('completion_reward_description', v)}
+                  placeholder="What players see as the completion incentive"
+                  rows={2}
+                />
+              </Field>
+            </div>
+          </div>
+        </div>
+      </Section>
+
+      {/* ─── NEW: Brand Promo Sections ───────────────────────────── */}
+      <Section title="Brand Promo Sections" icon={Megaphone} count={pass.promo_sections.length} defaultOpen={false}>
+        <div className="space-y-2 pt-4">
+          <p className="text-xs text-gray-500 mb-3">
+            Flexible promotional blocks shown on the Portal Pass detail page — store locators, shop links, partner callouts, etc.
+          </p>
+
+          {pass.promo_sections.length === 0 && (
+            <div className="text-center py-6 text-gray-500">
+              <Megaphone size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No promo sections yet. Add brand promotional blocks.</p>
+            </div>
+          )}
+
+          {pass.promo_sections.map((block, i) => (
+            <PromoBlockCard
+              key={i}
+              block={block}
+              index={i}
+              onChange={(updated) => updatePromoBlock(i, updated)}
+              onDelete={() => deletePromoBlock(i)}
+            />
+          ))}
+
+          <button
+            onClick={addPromoBlock}
+            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
+              rounded-lg text-gray-500 hover:border-[#C084FC]/50 hover:text-[#C084FC] transition-colors"
+          >
+            <Plus size={16} />
+            <span className="text-sm font-medium">Add Promo Section</span>
+          </button>
+        </div>
+      </Section>
+
+      {/* ─── NEW: Task Explainers ────────────────────────────────── */}
+      <Section title="Task Explainers" icon={BookOpen} count={pass.task_explainers.length} defaultOpen={false}>
+        <div className="space-y-2 pt-4">
+          <p className="text-xs text-gray-500 mb-3">
+            Educational how-to blocks that explain features to players — "What is QR scanning?", "How lending works", etc.
+          </p>
+
+          {pass.task_explainers.length === 0 && (
+            <div className="text-center py-6 text-gray-500">
+              <BookOpen size={28} className="mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No explainers yet. Help players understand what they need to do.</p>
+            </div>
+          )}
+
+          {pass.task_explainers.map((block, i) => (
+            <ExplainerBlockCard
+              key={i}
+              block={block}
+              index={i}
+              onChange={(updated) => updateExplainerBlock(i, updated)}
+              onDelete={() => deleteExplainerBlock(i)}
+            />
+          ))}
+
+          <button
+            onClick={addExplainerBlock}
+            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
+              rounded-lg text-gray-500 hover:border-[#00BFFF]/50 hover:text-[#00BFFF] transition-colors"
+          >
+            <Plus size={16} />
+            <span className="text-sm font-medium">Add Explainer</span>
+          </button>
         </div>
       </Section>
 
       {/* ─── Milestone Preview ───────────────────────────────────── */}
-      <Section title="Milestone Preview" icon={Eye} defaultOpen={true}>
+      <Section title="Milestone Preview" icon={Eye} defaultOpen={tasks.length > 0 || rewards.length > 0}>
         <MilestonePreview
           tasks={tasks}
           rewards={rewards}
-          totalLevels={pass.total_levels || 50}
-          xpPerLevel={pass.xp_per_level || 100}
+          totalLevels={pass.total_levels || 0}
+          xpPerLevel={pass.xp_per_level || 0}
         />
       </Section>
 

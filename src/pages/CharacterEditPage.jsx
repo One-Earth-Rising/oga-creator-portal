@@ -3,7 +3,8 @@ import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase, uploadCharacterImage, getCharacterImageUrl } from '../lib/supabase'
 import ImageUpload from '../components/ImageUpload'
 import CharacterPreview from '../components/CharacterPreview'
-import GameplayVideosPanel from '../components/GameplayVideosPanel'
+import GameplayVideosPanel from '../components/GameplayVideosPanel';
+import GameVariationsPanel from '../components/GameVariationsPanel';
 import { ArrowLeft, Save, Trash2, Loader2 } from 'lucide-react'
 
 const RARITIES = ['Common', 'Rare', 'Epic', 'Legendary']
@@ -352,7 +353,12 @@ export default function CharacterEditPage() {
             </div>
           </div>
 
-{/* Gameplay Videos (only for existing characters) */}
+{/* Multigameverse — Game Variations (only for existing characters) */}
+          {!isNew && form.id && (
+            <GameVariationsPanel characterId={form.id} />
+          )}
+
+          {/* Gameplay Videos (only for existing characters) */}
           {!isNew && form.id && (
             <GameplayVideosPanel characterId={form.id} />
           )}

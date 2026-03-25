@@ -6,7 +6,9 @@ import {
   GripVertical, Swords, QrCode, MapPin, Gamepad2, ArrowLeftRight,
   HandHelping, LayoutGrid, Wrench, Trophy, Star, Gift, Clock,
   Eye, EyeOff, AlertCircle, Check, X, MoveUp, MoveDown, Sparkles, Copy,
-  Image, Link, Megaphone, BookOpen, HelpCircle
+  Image, Link, Megaphone, BookOpen, HelpCircle, Table, BarChart3,
+  Zap, Users, Info, ShoppingBag, Store, ScanLine, LockOpen, Camera, Pen,
+  FileDown
 } from 'lucide-react';
 
 // ─── Task Type Registry ─────────────────────────────────────────────
@@ -86,6 +88,28 @@ const CTA_TYPES = [
   { value: 'scan_qr', label: 'Scan QR Code' },
   { value: 'purchase', label: 'Purchase' },
   { value: 'external_link', label: 'External Link' },
+];
+
+// ─── Icon Options (Material icon names → lucide preview) ────────────
+const ICON_OPTIONS = [
+  { value: 'qr_code', label: 'QR Code', preview: QrCode },
+  { value: 'handshake', label: 'Handshake', preview: HandHelping },
+  { value: 'swap_horiz', label: 'Trade', preview: ArrowLeftRight },
+  { value: 'sports_esports', label: 'Gaming', preview: Gamepad2 },
+  { value: 'location_on', label: 'Location', preview: MapPin },
+  { value: 'star', label: 'Star / Autograph', preview: Star },
+  { value: 'grid_view', label: 'Collection', preview: LayoutGrid },
+  { value: 'shopping_bag', label: 'Shopping', preview: ShoppingBag },
+  { value: 'storefront', label: 'Store', preview: Store },
+  { value: 'qr_code_scanner', label: 'Scanner', preview: ScanLine },
+  { value: 'lock_open', label: 'Unlock', preview: LockOpen },
+  { value: 'emoji_events', label: 'Trophy', preview: Trophy },
+  { value: 'group', label: 'Community', preview: Users },
+  { value: 'bolt', label: 'Lightning', preview: Zap },
+  { value: 'help_outline', label: 'Help', preview: HelpCircle },
+  { value: 'info', label: 'Info', preview: Info },
+  { value: 'draw', label: 'Draw / Sign', preview: Pen },
+  { value: 'camera_alt', label: 'Camera', preview: Camera },
 ];
 
 // ─── Helper: Generate temp ID for new items ─────────────────────────
@@ -718,8 +742,9 @@ function PromoBlockCard({ block, index, onChange, onDelete }) {
 }
 
 // ─── Explainer Block Card (JSONB editor for task_explainers) ────────
-function ExplainerBlockCard({ block, index, onChange, onDelete }) {
+function ExplainerBlockCard({ block, index, onChange, onDelete, onSaveAsTemplate }) {
   const [expanded, setExpanded] = useState(block._isNew || false);
+  const [savingTemplate, setSavingTemplate] = useState(false);
 
   const update = (field, value) => {
     const updated = { ...block, [field]: value };
@@ -727,11 +752,23 @@ function ExplainerBlockCard({ block, index, onChange, onDelete }) {
     onChange(updated);
   };
 
+  const selectedIcon = ICON_OPTIONS.find(o => o.value === block.icon);
+
+  const handleSaveTemplate = async () => {
+    if (!block.title) return;
+    setSavingTemplate(true);
+    try {
+      await onSaveAsTemplate(block);
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
+
   return (
     <div className="border border-[#2C2C2C] rounded-lg bg-[#0A0A0A] overflow-hidden group">
       <div className="flex items-center gap-3 px-4 py-3">
         <div className="w-7 h-7 rounded flex items-center justify-center bg-[#00BFFF]/10 text-[#00BFFF] flex-shrink-0">
-          <HelpCircle size={14} />
+          {selectedIcon ? <selectedIcon.preview size={14} /> : <HelpCircle size={14} />}
         </div>
         <button
           onClick={() => setExpanded(!expanded)}
@@ -761,36 +798,135 @@ function ExplainerBlockCard({ block, index, onChange, onDelete }) {
       {expanded && (
         <div className="px-4 pb-4 pt-2 border-t border-[#2C2C2C] space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Related Task Type">
+            <div className="space-y-1.5">
+              <label className="oga-label">Related Task Type</label>
               <Select
                 value={block.task_type}
                 onChange={(v) => update('task_type', v)}
                 placeholder="Any / General"
                 options={Object.entries(TASK_TYPES).map(([k, t]) => ({ value: k, label: t.label }))}
               />
-            </Field>
-            <Field label="Icon" hint="Material icon name">
-              <TextInput value={block.icon} onChange={(v) => update('icon', v)} placeholder="e.g., qr_code, handshake" />
-            </Field>
+            </div>
+            <div className="space-y-1.5">
+              <label className="oga-label">Icon</label>
+              <div className="flex items-center gap-2">
+                <select
+                  value={block.icon || ''}
+                  onChange={(e) => update('icon', e.target.value)}
+                  className="oga-select flex-1"
+                >
+                  <option value="">Select icon...</option>
+                  {ICON_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+                {selectedIcon && (
+                  <div className="w-9 h-9 rounded-lg bg-[#00BFFF]/10 flex items-center justify-center flex-shrink-0 border border-[#2C2C2C]">
+                    <selectedIcon.preview size={16} className="text-[#00BFFF]" />
+                  </div>
+                )}
+              </div>
+              <p className="text-[10px] text-gray-600">Stores Material icon name for Flutter rendering</p>
+            </div>
           </div>
-          <Field label="Title">
+          <div className="space-y-1.5">
+            <label className="oga-label">Title</label>
             <TextInput value={block.title} onChange={(v) => update('title', v)} placeholder="e.g., What is QR Scanning?" />
-          </Field>
-          <Field label="Body">
+          </div>
+          <div className="space-y-1.5">
+            <label className="oga-label">Body</label>
             <TextArea value={block.body} onChange={(v) => update('body', v)} placeholder="Explain the feature to players..." rows={4} />
-          </Field>
+          </div>
+
+          {/* Save as Template */}
+          <div className="border-t border-[#2C2C2C] pt-3 mt-2">
+            <button
+              onClick={handleSaveTemplate}
+              disabled={!block.title || savingTemplate}
+              className="flex items-center gap-2 text-xs text-gray-500 hover:text-[#00BFFF] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+            >
+              {savingTemplate ? (
+                <div className="w-3 h-3 border-2 border-[#00BFFF] border-t-transparent rounded-full animate-spin" />
+              ) : (
+                <FileDown size={12} />
+              )}
+              {savingTemplate ? 'Saving...' : 'Save as Reusable Template'}
+            </button>
+          </div>
         </div>
       )}
     </div>
   );
 }
 
-// ─── Milestone Preview ──────────────────────────────────────────────
+// ─── Template Picker Modal ──────────────────────────────────────────
+function TemplatePicker({ templates, onSelect, onClose, onDelete }) {
+  if (!templates || templates.length === 0) {
+    return (
+      <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+        <div className="bg-[#121212] border border-[#2C2C2C] rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-white font-bold text-sm uppercase tracking-wider">Explainer Templates</h3>
+            <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+          </div>
+          <div className="text-center py-8 text-gray-500">
+            <BookOpen size={28} className="mx-auto mb-2 opacity-30" />
+            <p className="text-sm">No templates saved yet.</p>
+            <p className="text-xs text-gray-600 mt-1">Use "Save as Reusable Template" on any explainer to create one.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#121212] border border-[#2C2C2C] rounded-xl p-6 max-w-lg w-full mx-4 shadow-2xl max-h-[70vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-white font-bold text-sm uppercase tracking-wider">Use Template</h3>
+          <button onClick={onClose} className="text-gray-500 hover:text-white"><X size={18} /></button>
+        </div>
+        <div className="space-y-2">
+          {templates.map((t) => {
+            const iconOpt = ICON_OPTIONS.find(o => o.value === t.icon);
+            const PreviewIcon = iconOpt?.preview || HelpCircle;
+            const taskType = t.task_type ? TASK_TYPES[t.task_type] : null;
+            return (
+              <div key={t.id} className="flex items-center gap-3 p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A] hover:border-[#00BFFF]/40 transition-colors group">
+                <div className="w-8 h-8 rounded flex items-center justify-center bg-[#00BFFF]/10 text-[#00BFFF] flex-shrink-0">
+                  <PreviewIcon size={16} />
+                </div>
+                <button
+                  onClick={() => onSelect(t)}
+                  className="flex-1 text-left"
+                >
+                  <div className="text-sm font-semibold text-white">{t.title}</div>
+                  <div className="text-[10px] text-gray-500 mt-0.5 flex items-center gap-2">
+                    {taskType && <span style={{ color: taskType.color }}>{taskType.label}</span>}
+                    {t.body && <span className="truncate max-w-[200px]">{t.body.substring(0, 60)}...</span>}
+                  </div>
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(t.id); }}
+                  className="text-gray-700 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Milestone Preview ──────────────────────────────────────────
 function MilestonePreview({ tasks, rewards, totalLevels, xpPerLevel }) {
+  const [viewMode, setViewMode] = useState('table');
   const hasData = tasks.length > 0 || rewards.length > 0;
   const hasXpCurve = totalLevels > 0 && xpPerLevel > 0;
 
-  // Empty state — no XP curve configured
   if (!hasXpCurve) {
     return (
       <div className="text-center py-8 text-gray-500">
@@ -800,20 +936,158 @@ function MilestonePreview({ tasks, rewards, totalLevels, xpPerLevel }) {
     );
   }
 
-  // Empty state — no tasks or rewards yet
+  const totalXP = totalLevels * xpPerLevel;
+  const taskXP = tasks.reduce((s, t) => s + (t.xp_reward || 0), 0);
+
+  // Build combined items list
+  const items = [];
+  tasks.forEach((t) => {
+    items.push({
+      type: 'task',
+      label: t.title || 'Untitled Task',
+      taskType: t.task_type,
+      color: TASK_TYPES[t.task_type]?.color || '#94A3B8',
+      icon: TASK_TYPES[t.task_type]?.icon || Wrench,
+      level: t.level_requirement || 0,
+      xp: t.xp_reward || 0,
+    });
+  });
+  rewards.forEach((r) => {
+    items.push({
+      type: 'reward',
+      label: r.name || 'Untitled Reward',
+      color: '#FFD700',
+      icon: Gift,
+      level: r.level_required || 0,
+      xp: null,
+    });
+  });
+  items.sort((a, b) => a.level - b.level || a.label.localeCompare(b.label));
+
   if (!hasData) {
     return (
       <div className="space-y-4 pt-4">
         <div className="flex items-center gap-4 text-xs text-gray-400">
           <span>Total Levels: <strong className="text-white">{totalLevels}</strong></span>
           <span>XP/Level: <strong className="text-white">{xpPerLevel}</strong></span>
-          <span>Total XP: <strong className="text-[#39FF14]">{(totalLevels * xpPerLevel).toLocaleString()}</strong></span>
+          <span>Total XP: <strong className="text-[#39FF14]">{totalXP.toLocaleString()}</strong></span>
         </div>
+        <p className="text-center text-xs text-gray-600 mt-2">Add tasks and rewards to populate the milestone preview.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 pt-4">
+      {/* Header: stats + view toggle */}
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
+          <span>Levels: <strong className="text-white">{totalLevels}</strong></span>
+          <span>XP/Lv: <strong className="text-white">{xpPerLevel}</strong></span>
+          <span>Total XP: <strong className="text-[#39FF14]">{totalXP.toLocaleString()}</strong></span>
+          <span>Task Pool: <strong className="text-[#39FF14]">{taskXP.toLocaleString()}</strong></span>
+        </div>
+        <div className="flex items-center gap-1 bg-[#0A0A0A] rounded-lg p-0.5 border border-[#2C2C2C]">
+          <button
+            onClick={() => setViewMode('table')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+              viewMode === 'table' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Table size={12} /> Table
+          </button>
+          <button
+            onClick={() => setViewMode('track')}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
+              viewMode === 'track' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <BarChart3 size={12} /> Track
+          </button>
+        </div>
+      </div>
+
+      {viewMode === 'table' ? (
+        /* ── TABLE VIEW ──────────────────────────────────── */
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#2C2C2C]">
+                <th className="text-left text-[10px] text-gray-500 uppercase tracking-wider font-bold py-2 px-2 w-8">#</th>
+                <th className="text-left text-[10px] text-gray-500 uppercase tracking-wider font-bold py-2 px-2 w-10">Type</th>
+                <th className="text-left text-[10px] text-gray-500 uppercase tracking-wider font-bold py-2 px-2">Name</th>
+                <th className="text-right text-[10px] text-gray-500 uppercase tracking-wider font-bold py-2 px-2 w-16">Level</th>
+                <th className="text-right text-[10px] text-gray-500 uppercase tracking-wider font-bold py-2 px-2 w-20">XP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item, i) => {
+                const Icon = item.icon;
+                return (
+                  <tr key={i} className="border-b border-[#2C2C2C]/50 hover:bg-[#39FF14]/3 transition-colors">
+                    <td className="py-2 px-2 text-xs text-gray-600 font-mono">{i + 1}</td>
+                    <td className="py-2 px-2">
+                      <div
+                        className="w-6 h-6 rounded flex items-center justify-center"
+                        style={{ backgroundColor: `${item.color}15`, color: item.color }}
+                      >
+                        <Icon size={12} />
+                      </div>
+                    </td>
+                    <td className="py-2 px-2">
+                      <span className="text-white text-xs font-semibold">{item.label}</span>
+                      {item.type === 'reward' && (
+                        <span className="ml-2 text-[9px] text-[#FFD700] bg-[#FFD700]/10 px-1.5 py-0.5 rounded font-bold uppercase">Reward</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      <span className="text-xs text-gray-400">Lv.{item.level}</span>
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      {item.xp !== null ? (
+                        <span className="text-xs font-bold text-[#39FF14]">{item.xp}</span>
+                      ) : (
+                        <span className="text-xs text-gray-600">—</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* ── TRACK VIEW (existing visual) ───────────────── */
         <div className="relative">
           <div className="h-2 bg-[#2C2C2C] rounded-full relative overflow-visible">
             <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#39FF14]/20 to-[#39FF14]/5" />
           </div>
-          <div className="flex justify-between text-[9px] text-gray-600 mt-2 px-1">
+          <div className="relative h-20 mt-1">
+            {items.map((m, i) => {
+              const levelPos = totalLevels > 0 ? Math.min((m.level || 0) / totalLevels, 1) : 0;
+              return (
+                <div
+                  key={i}
+                  className="absolute flex flex-col items-center"
+                  style={{ left: `${Math.max(2, Math.min(levelPos * 100, 96))}%`, transform: 'translateX(-50%)' }}
+                >
+                  <div
+                    className="w-3 h-3 rounded-full border-2 -mt-[10px]"
+                    style={{
+                      backgroundColor: m.color,
+                      borderColor: m.type === 'reward' ? '#FFD700' : m.color,
+                      boxShadow: `0 0 6px ${m.color}40`,
+                    }}
+                  />
+                  <div className={`mt-1 text-center max-w-[80px] ${i % 2 === 0 ? '' : 'mt-8'}`}>
+                    <div className="text-[9px] font-bold truncate" style={{ color: m.color }}>{m.label}</div>
+                    <div className="text-[8px] text-gray-500">Lv.{m.level}{m.xp ? ` · ${m.xp}XP` : ''}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex justify-between text-[9px] text-gray-600 mt-1 px-1">
             <span>Lv.0</span>
             <span>Lv.{Math.round(totalLevels * 0.25)}</span>
             <span>Lv.{Math.round(totalLevels * 0.5)}</span>
@@ -821,99 +1095,7 @@ function MilestonePreview({ tasks, rewards, totalLevels, xpPerLevel }) {
             <span>Lv.{totalLevels}</span>
           </div>
         </div>
-        <p className="text-center text-xs text-gray-600 mt-2">Add tasks and rewards to populate the timeline.</p>
-      </div>
-    );
-  }
-
-  const totalXP = totalLevels * xpPerLevel;
-  const markers = [];
-
-  // Map tasks to positions
-  tasks.forEach((t) => {
-    const levelPos = (t.level_requirement || 0) / totalLevels;
-    markers.push({
-      pos: Math.min(levelPos, 1),
-      label: t.title || 'Task',
-      type: 'task',
-      color: TASK_TYPES[t.task_type]?.color || '#94A3B8',
-      xp: t.xp_reward,
-      level: t.level_requirement || 0,
-    });
-  });
-
-  // Map rewards to positions
-  rewards.forEach((r) => {
-    const levelPos = (r.level_required || 0) / totalLevels;
-    markers.push({
-      pos: Math.min(levelPos, 1),
-      label: r.name || 'Reward',
-      type: 'reward',
-      color: '#FFD700',
-      level: r.level_required,
-    });
-  });
-
-  // Sort by position
-  markers.sort((a, b) => a.pos - b.pos);
-
-  return (
-    <div className="space-y-4 pt-4">
-      {/* XP summary */}
-      <div className="flex items-center gap-4 text-xs text-gray-400 flex-wrap">
-        <span>Total Levels: <strong className="text-white">{totalLevels}</strong></span>
-        <span>XP/Level: <strong className="text-white">{xpPerLevel}</strong></span>
-        <span>Total XP: <strong className="text-[#39FF14]">{totalXP.toLocaleString()}</strong></span>
-        <span>Task XP Pool: <strong className="text-[#39FF14]">{tasks.reduce((s, t) => s + (t.xp_reward || 0), 0).toLocaleString()}</strong></span>
-      </div>
-
-      {/* Track */}
-      <div className="relative">
-        {/* Base track */}
-        <div className="h-2 bg-[#2C2C2C] rounded-full relative overflow-visible">
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-[#39FF14]/20 to-[#39FF14]/5" />
-        </div>
-
-        {/* Markers */}
-        <div className="relative h-20 mt-1">
-          {markers.map((m, i) => (
-            <div
-              key={i}
-              className="absolute flex flex-col items-center"
-              style={{ left: `${Math.max(2, Math.min(m.pos * 100, 96))}%`, transform: 'translateX(-50%)' }}
-            >
-              {/* Dot */}
-              <div
-                className="w-3 h-3 rounded-full border-2 -mt-[10px]"
-                style={{
-                  backgroundColor: m.color,
-                  borderColor: m.type === 'reward' ? '#FFD700' : m.color,
-                  boxShadow: `0 0 6px ${m.color}40`,
-                }}
-              />
-              {/* Label */}
-              <div className={`mt-1 text-center max-w-[80px] ${i % 2 === 0 ? '' : 'mt-8'}`}>
-                <div className="text-[9px] font-bold truncate" style={{ color: m.color }}>
-                  {m.label}
-                </div>
-                <div className="text-[8px] text-gray-500">
-                  Lv.{m.level}
-                  {m.xp ? ` · ${m.xp}XP` : ''}
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Level markers at 25%, 50%, 75%, 100% */}
-        <div className="flex justify-between text-[9px] text-gray-600 mt-1 px-1">
-          <span>Lv.0</span>
-          <span>Lv.{Math.round(totalLevels * 0.25)}</span>
-          <span>Lv.{Math.round(totalLevels * 0.5)}</span>
-          <span>Lv.{Math.round(totalLevels * 0.75)}</span>
-          <span>Lv.{totalLevels}</span>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -978,6 +1160,10 @@ export default function PortalPassBuilderPage() {
   const [characters, setCharacters] = useState([]);
   const [games, setGames] = useState([]);
 
+  // Explainer templates
+  const [explainerTemplates, setExplainerTemplates] = useState([]);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+
   // ── Load Pass Data ────────────────────────────────────────────────
   useEffect(() => {
     loadData();
@@ -993,6 +1179,12 @@ export default function PortalPassBuilderPage() {
       ]);
       setCharacters(charsRes.data || []);
       setGames(gamesRes.data || []);
+
+      // Load explainer templates
+      try {
+        const { data: tplData } = await supabase.rpc('get_explainer_templates');
+        setExplainerTemplates(Array.isArray(tplData) ? tplData : (tplData || []));
+      } catch (e) { console.warn('Templates load:', e); }
 
       if (!isNew) {
         // Load full pass via RPC
@@ -1153,6 +1345,44 @@ export default function PortalPassBuilderPage() {
 
   const deleteExplainerBlock = (index) => {
     updatePass('task_explainers', pass.task_explainers.filter((_, i) => i !== index));
+  };
+
+// ── Explainer Template Functions ──────────────────────────────
+  const saveAsTemplate = async (block) => {
+    try {
+      const { data, error } = await supabase.rpc('save_explainer_template', {
+        p_title: block.title,
+        p_body: block.body || null,
+        p_icon: block.icon || null,
+        p_task_type: block.task_type || null,
+      });
+      if (error) throw error;
+      showToast('Template saved');
+      // Reload templates
+      const { data: tplData } = await supabase.rpc('get_explainer_templates');
+      setExplainerTemplates(Array.isArray(tplData) ? tplData : (tplData || []));
+    } catch (err) {
+      showToast(`Template save failed: ${err.message}`, 'error');
+    }
+  };
+
+  const useTemplate = (template) => {
+    updatePass('task_explainers', [
+      ...pass.task_explainers,
+      { _isNew: true, task_type: template.task_type || '', title: template.title || '', body: template.body || '', icon: template.icon || '' },
+    ]);
+    setShowTemplatePicker(false);
+    showToast('Template applied', 'info');
+  };
+
+  const deleteTemplate = async (templateId) => {
+    try {
+      await supabase.rpc('delete_explainer_template', { p_id: templateId });
+      setExplainerTemplates(prev => prev.filter(t => t.id !== templateId));
+      showToast('Template deleted');
+    } catch (err) {
+      showToast(`Delete failed: ${err.message}`, 'error');
+    }
   };
 
   // ── Build the 29-param RPC payload ────────────────────────────────
@@ -1751,6 +1981,14 @@ export default function PortalPassBuilderPage() {
       </Section>
 
       {/* ─── NEW: Task Explainers ────────────────────────────────── */}
+      {showTemplatePicker && (
+        <TemplatePicker
+          templates={explainerTemplates}
+          onSelect={useTemplate}
+          onClose={() => setShowTemplatePicker(false)}
+          onDelete={deleteTemplate}
+        />
+      )}
       <Section title="Task Explainers" icon={BookOpen} count={pass.task_explainers.length} defaultOpen={false}>
         <div className="space-y-2 pt-4">
           <p className="text-xs text-gray-500 mb-3">
@@ -1771,17 +2009,30 @@ export default function PortalPassBuilderPage() {
               index={i}
               onChange={(updated) => updateExplainerBlock(i, updated)}
               onDelete={() => deleteExplainerBlock(i)}
+              onSaveAsTemplate={saveAsTemplate}
             />
           ))}
 
-          <button
-            onClick={addExplainerBlock}
-            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
-              rounded-lg text-gray-500 hover:border-[#00BFFF]/50 hover:text-[#00BFFF] transition-colors"
-          >
-            <Plus size={16} />
-            <span className="text-sm font-medium">Add Explainer</span>
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={addExplainerBlock}
+              className="flex-1 flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
+                rounded-lg text-gray-500 hover:border-[#00BFFF]/50 hover:text-[#00BFFF] transition-colors"
+            >
+              <Plus size={16} />
+              <span className="text-sm font-medium">Add Explainer</span>
+            </button>
+            {explainerTemplates.length > 0 && (
+              <button
+                onClick={() => setShowTemplatePicker(true)}
+                className="flex items-center gap-2 px-4 py-3 border border-dashed border-[#2C2C2C]
+                  rounded-lg text-gray-500 hover:border-[#C084FC]/50 hover:text-[#C084FC] transition-colors"
+              >
+                <FileDown size={16} />
+                <span className="text-sm font-medium">From Template</span>
+              </button>
+            )}
+          </div>
         </div>
       </Section>
 

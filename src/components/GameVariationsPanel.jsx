@@ -2,8 +2,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Plus, Trash2, ChevronDown, ChevronUp, MoveUp, MoveDown,
-  Gamepad2, X, AlertCircle, Check
+  Gamepad2, X, AlertCircle, Check, ExternalLink
 } from 'lucide-react';
+
+// ─── Platform Config ────────────────────────────────────────────────
+const PLATFORMS = [
+  { key: 'playstation_url', label: 'PlayStation', placeholder: 'https://store.playstation.com/...' },
+  { key: 'steam_url', label: 'Steam', placeholder: 'https://store.steampowered.com/...' },
+  { key: 'xbox_url', label: 'Xbox', placeholder: 'https://www.xbox.com/...' },
+  { key: 'epic_url', label: 'Epic Games', placeholder: 'https://store.epicgames.com/...' },
+  { key: 'nintendo_url', label: 'Nintendo', placeholder: 'https://www.nintendo.com/...' },
+  { key: 'ios_url', label: 'App Store (iOS)', placeholder: 'https://apps.apple.com/...' },
+  { key: 'android_url', label: 'Google Play', placeholder: 'https://play.google.com/...' },
+];
 
 // ─── Image Uploader (lightweight inline version) ────────────────────
 function VariationImageUploader({ value, onChange, characterId, gameLabel }) {
@@ -103,6 +114,9 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
     (variation.game_id && games.find(g => g.id === variation.game_id)?.name) ||
     'Unknown Game';
 
+  // Count how many platform URLs are filled
+  const platformCount = PLATFORMS.filter(p => variation[p.key]?.trim()).length;
+
   return (
     <div className="border border-[#2C2C2C] rounded-lg bg-[#0A0A0A] overflow-hidden group">
       <div className="flex items-center gap-3 px-4 py-3">
@@ -131,6 +145,13 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
           {gameName}
         </button>
 
+        {/* Platform count badge */}
+        {platformCount > 0 && (
+          <span className="text-xs text-gray-400 bg-[#2C2C2C] px-2 py-0.5 rounded whitespace-nowrap flex items-center gap-1">
+            <ExternalLink size={10} /> {platformCount}
+          </span>
+        )}
+
         {/* Thumbnail preview */}
         {variation.character_image && (
           <img
@@ -154,6 +175,7 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
 
       {expanded && (
         <div className="px-4 pb-4 pt-2 border-t border-[#2C2C2C] space-y-4">
+          {/* Game selection */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-1.5">
               <label className="oga-label">Game</label>
@@ -185,6 +207,7 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
             </div>
           </div>
 
+          {/* Description */}
           <div className="space-y-1.5">
             <label className="oga-label">Description</label>
             <textarea
@@ -196,6 +219,7 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
             />
           </div>
 
+          {/* Image */}
           <div className="space-y-1.5">
             <label className="oga-label">Character Image (in-game preview)</label>
             <VariationImageUploader
@@ -206,6 +230,7 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
             />
           </div>
 
+          {/* Sort Order */}
           <div className="space-y-1.5">
             <label className="oga-label">Sort Order</label>
             <input
@@ -215,6 +240,30 @@ function VariationCard({ variation, index, total, games, characterId, onChange, 
               min={0}
               className="oga-input w-28"
             />
+          </div>
+
+          {/* ── Platform Store URLs ──────────────────────────────── */}
+          <div className="border-t border-[#2C2C2C] pt-4 mt-2">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold flex items-center gap-2">
+              <ExternalLink size={12} /> Platform Store Links
+            </p>
+            <p className="text-xs text-gray-600 mb-3">
+              Add store URLs for each platform where this game is available. Buttons render dynamically in the consumer app.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {PLATFORMS.map((platform) => (
+                <div key={platform.key} className="space-y-1">
+                  <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold">{platform.label}</label>
+                  <input
+                    type="url"
+                    value={variation[platform.key] || ''}
+                    onChange={(e) => update(platform.key, e.target.value)}
+                    placeholder={platform.placeholder}
+                    className="oga-input text-xs"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -249,11 +298,12 @@ export default function GameVariationsPanel({ characterId }) {
       ]);
 
       if (varsRes.error) throw varsRes.error;
-      setVariations((varsRes.data || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+      const varsData = Array.isArray(varsRes.data) ? varsRes.data : (varsRes.data || []);
+      setVariations(varsData.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
       setGames(gamesRes.data || []);
     } catch (err) {
       console.error('Load game variations error:', err);
-      // Fallback: try direct table query if RPC doesn't exist yet
+      // Fallback: direct table query
       try {
         const [varsRes, gamesRes] = await Promise.all([
           supabase.from('game_variations').select('*').eq('character_id', characterId).order('sort_order'),
@@ -281,6 +331,14 @@ export default function GameVariationsPanel({ characterId }) {
       character_image: '',
       description: '',
       sort_order: variations.length,
+      // Platform URLs
+      playstation_url: '',
+      steam_url: '',
+      xbox_url: '',
+      nintendo_url: '',
+      ios_url: '',
+      android_url: '',
+      epic_url: '',
     }]);
   };
 
@@ -318,7 +376,7 @@ export default function GameVariationsPanel({ characterId }) {
         await supabase.rpc('delete_game_variation', { p_id: vid });
       }
 
-      // Upsert all variations
+      // Upsert all variations (14 params now)
       for (const v of variations) {
         const { error } = await supabase.rpc('upsert_game_variation', {
           p_id: v._isTemp ? null : v.id,
@@ -328,13 +386,20 @@ export default function GameVariationsPanel({ characterId }) {
           p_character_image: v.character_image || null,
           p_description: v.description || null,
           p_sort_order: v.sort_order || 0,
+          p_playstation_url: v.playstation_url || null,
+          p_steam_url: v.steam_url || null,
+          p_xbox_url: v.xbox_url || null,
+          p_nintendo_url: v.nintendo_url || null,
+          p_ios_url: v.ios_url || null,
+          p_android_url: v.android_url || null,
+          p_epic_url: v.epic_url || null,
         });
         if (error) throw error;
       }
 
       setDeletedIds([]);
       setToast({ message: 'Game variations saved', type: 'success' });
-      await loadVariations(); // Reload to get fresh IDs
+      await loadVariations();
     } catch (err) {
       console.error('Save game variations error:', err);
       setToast({ message: `Save failed: ${err.message}`, type: 'error' });

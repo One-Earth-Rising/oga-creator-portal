@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import FeedbackWidget from './FeedbackWidget';
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -149,6 +150,7 @@ export default function Layout({ children }) {
         <div className="p-4 sm:p-6 lg:p-8">
           {children}
         </div>
+        <FeedbackWidget />
       </main>
     </div>
   )

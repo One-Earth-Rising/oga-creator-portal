@@ -50,6 +50,7 @@ export default function FeedbackWidget() {
   const [category, setCategory] = useState('');
   const [message, setMessage] = useState('');
   const [screenshot, setScreenshot] = useState(null);
+  const [priority, setPriority] = useState('medium');
   const [screenshotPreview, setScreenshotPreview] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -70,6 +71,7 @@ export default function FeedbackWidget() {
     setMessage('');
     setScreenshot(null);
     setScreenshotPreview(null);
+    setPriority('medium');
     setError(null);
     setSubmitted(false);
   };
@@ -154,6 +156,7 @@ export default function FeedbackWidget() {
         page_context: pageContext,
         screenshot_url: screenshotUrl,
         device_info: deviceInfo,
+        priority,
         extra_metadata: {
           portal: 'creator',
           url: window.location.href,
@@ -288,6 +291,33 @@ export default function FeedbackWidget() {
                   <p className="text-[10px] text-gray-600 mt-1">
                     Tip: Paste a screenshot from clipboard (Ctrl/Cmd+V)
                   </p>
+                </div>
+
+{/* Urgency */}
+                <div>
+                  <label className="text-[10px] text-gray-500 uppercase tracking-wider font-bold block mb-2">
+                    Urgency
+                  </label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'low', label: 'Low', color: '#22C55E' },
+                      { value: 'medium', label: 'Medium', color: '#F59E0B' },
+                      { value: 'high', label: 'High', color: '#EF4444' },
+                    ].map((p) => (
+                      <button
+                        key={p.value}
+                        onClick={() => { setPriority(p.value); setError(null); }}
+                        className={`flex-1 py-2.5 rounded-lg border text-xs font-bold uppercase tracking-wider transition-all
+                          ${priority === p.value
+                            ? `border-[${p.color}] bg-[${p.color}]/10`
+                            : 'border-[#2C2C2C] bg-[#0A0A0A] hover:border-gray-600'
+                          }`}
+                        style={priority === p.value ? { borderColor: p.color, backgroundColor: `${p.color}15`, color: p.color } : { color: '#6B7280' }}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Screenshot */}

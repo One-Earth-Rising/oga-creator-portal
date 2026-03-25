@@ -1147,6 +1147,10 @@ export default function PortalPassBuilderPage() {
     completion_reward_description: '',
     promo_sections: [],
     task_explainers: [],
+    // ── Sprint 43C fields ─────────────────────────────────────
+    cta_buttons: [],
+    enable_scan_qr: false,
+    enable_enter_code: false,
   });
 
   const [tasks, setTasks] = useState([]);
@@ -1164,6 +1168,12 @@ export default function PortalPassBuilderPage() {
   const [explainerTemplates, setExplainerTemplates] = useState([]);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
 
+  // Pass characters (junction table)
+  const [passCharacters, setPassCharacters] = useState([]);
+
+  // IP Brands for auto-populate
+  const [brands, setBrands] = useState([]);
+
   // ── Load Pass Data ────────────────────────────────────────────────
   useEffect(() => {
     loadData();
@@ -1179,6 +1189,12 @@ export default function PortalPassBuilderPage() {
       ]);
       setCharacters(charsRes.data || []);
       setGames(gamesRes.data || []);
+
+      // Load IP brands for auto-populate
+      try {
+        const { data: brandData } = await supabase.rpc('get_ip_brands');
+        setBrands(brandData || []);
+      } catch (e) { console.warn('Brands load:', e); }
 
       // Load explainer templates
       try {
@@ -1214,9 +1230,22 @@ export default function PortalPassBuilderPage() {
           passFields.promo_sections = passFields.promo_sections || [];
           passFields.task_explainers = passFields.task_explainers || [];
 
+          // Parse cta_buttons
+          if (typeof passFields.cta_buttons === 'string') {
+            try { passFields.cta_buttons = JSON.parse(passFields.cta_buttons); } catch { passFields.cta_buttons = []; }
+          }
+          passFields.cta_buttons = passFields.cta_buttons || [];
+          passFields.enable_scan_qr = passFields.enable_scan_qr ?? false;
+          passFields.enable_enter_code = passFields.enable_enter_code ?? false;
+
           setPass(prev => ({ ...prev, ...passFields, id: passFields.id || id }));
           setTasks((loadedTasks || []).sort((a, b) => (a.order_index || 0) - (b.order_index || 0)));
           setRewards((loadedRewards || []).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+          // Load pass characters from junction table
+          try {
+            const { data: pcData } = await supabase.rpc('get_pass_characters', { p_pass_id: id });
+            setPassCharacters((pcData || []).map(pc => pc.character_id));
+          } catch (e) { console.warn('Pass characters load:', e); }
         }
       }
     } catch (err) {
@@ -1347,6 +1376,48 @@ export default function PortalPassBuilderPage() {
     updatePass('task_explainers', pass.task_explainers.filter((_, i) => i !== index));
   };
 
+  // ── Brand Auto-Populate ───────────────────────────────────────
+  const handleBrandSelect = async (brandId) => {
+    updatePass('character_id', ''); // clear single-char (legacy field)
+    if (!brandId) return;
+
+    try {
+      const { data } = await supabase.rpc('get_brand_details', { p_brand_id: brandId });
+      if (data) {
+        setPass(prev => ({
+          ...prev,
+          brand_name: data.display_name || data.name || prev.brand_name,
+          brand_logo_url: data.logo_url || prev.brand_logo_url,
+        }));
+      }
+    } catch (e) { console.warn('Brand auto-populate:', e); }
+  };
+
+  // ── CTA Buttons Management ────────────────────────────────────
+  const addCtaButton = () => {
+    updatePass('cta_buttons', [
+      ...pass.cta_buttons,
+      { label: '', url: '', style: 'outline' },
+    ]);
+  };
+
+  const updateCtaButton = (index, field, value) => {
+    const buttons = [...pass.cta_buttons];
+    buttons[index] = { ...buttons[index], [field]: value };
+    updatePass('cta_buttons', buttons);
+  };
+
+  const removeCtaButton = (index) => {
+    updatePass('cta_buttons', pass.cta_buttons.filter((_, i) => i !== index));
+  };
+
+  // ── Pass Characters Management ────────────────────────────────
+  const togglePassCharacter = (charId) => {
+    setPassCharacters(prev =>
+      prev.includes(charId) ? prev.filter(c => c !== charId) : [...prev, charId]
+    );
+  };
+
 // ── Explainer Template Functions ──────────────────────────────
   const saveAsTemplate = async (block) => {
     try {
@@ -1416,6 +1487,10 @@ export default function PortalPassBuilderPage() {
     p_completion_reward_description: pass.completion_reward_description || null,
     p_promo_sections: JSON.stringify(cleanJsonbArray(pass.promo_sections)),
     p_task_explainers: JSON.stringify(cleanJsonbArray(pass.task_explainers)),
+    // Sprint 43C
+    p_cta_buttons: JSON.stringify(cleanJsonbArray(pass.cta_buttons)),
+    p_enable_scan_qr: pass.enable_scan_qr || false,
+    p_enable_enter_code: pass.enable_enter_code || false,
     ...overrides,
   });
 
@@ -1482,6 +1557,15 @@ export default function PortalPassBuilderPage() {
           p_description: reward.description || null,
         });
         if (rewardError) throw rewardError;
+      }
+      
+// Duplicate pass characters
+      if (passCharacters.length > 0) {
+        await supabase.rpc('set_pass_characters', {
+          p_pass_id: newId,
+          p_character_ids: passCharacters,
+          p_added_via: 'manual',
+        });
       }
 
       showToast('Pass duplicated — opening copy');
@@ -1587,6 +1671,16 @@ export default function PortalPassBuilderPage() {
           p_description: reward.description || null,
         });
         if (rewardError) throw rewardError;
+      }
+
+      // 7. Save pass characters (junction table)
+      if (passCharacters.length > 0) {
+        const { error: pcError } = await supabase.rpc('set_pass_characters', {
+          p_pass_id: passId,
+          p_character_ids: passCharacters,
+          p_added_via: 'manual',
+        });
+        if (pcError) console.warn('Pass characters save:', pcError);
       }
 
       setDeletedTaskIds([]);
@@ -1721,8 +1815,19 @@ export default function PortalPassBuilderPage() {
           <div className="border-t border-[#2C2C2C] pt-4 mt-4">
             <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Brand / Co-Brand</p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Brand Name">
+              <Field label="Brand / IP">
+                <select
+                  value=""
+                  onChange={(e) => { if (e.target.value) handleBrandSelect(e.target.value); }}
+                  className="oga-select mb-2"
+                >
+                  <option value="">Auto-fill from IP Brand...</option>
+                  {brands.map(b => (
+                    <option key={b.id} value={b.id}>{b.display_name || b.name}</option>
+                  ))}
+                </select>
                 <TextInput value={pass.brand_name} onChange={(v) => updatePass('brand_name', v)} placeholder="e.g., Final Boss Sour" />
+                <p className="text-[10px] text-gray-600 mt-1">Select a brand above to auto-fill, or type manually</p>
               </Field>
               <Field label="Brand Logo">
                 <ImageUploader
@@ -1788,35 +1893,137 @@ export default function PortalPassBuilderPage() {
         </div>
       </Section>
 
-      {/* ─── NEW: Call to Action ──────────────────────────────────── */}
+      {/* ─── Call to Action ──────────────────────────────────────── */}
       <Section title="Call to Action" icon={Link} defaultOpen={false}>
         <div className="space-y-4 pt-4">
+          {/* Preset Toggles */}
           <p className="text-xs text-gray-500">
-            Primary CTA button shown on the Portal Pass detail page. Choose "None" to hide it.
+            Toggle built-in app behaviors. These appear as primary buttons on the Portal Pass detail page.
           </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="CTA Type">
-              <Select value={pass.cta_type} onChange={(v) => updatePass('cta_type', v)} options={CTA_TYPES} />
-            </Field>
-            {pass.cta_type && pass.cta_type !== 'none' && (
-              <Field label="Button Label">
-                <TextInput
-                  value={pass.cta_label}
-                  onChange={(v) => updatePass('cta_label', v)}
-                  placeholder={
-                    pass.cta_type === 'enter_code' ? 'ENTER CODE' :
-                    pass.cta_type === 'scan_qr' ? 'SCAN QR CODE' :
-                    pass.cta_type === 'purchase' ? 'BUY NOW' :
-                    'LEARN MORE'
-                  }
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
+                  <ScanLine size={16} className="text-[#39FF14]" />
+                </div>
+                <div>
+                  <p className="text-sm text-white font-semibold">Scan QR Code</p>
+                  <p className="text-[10px] text-gray-500">Opens camera scanner in-app</p>
+                </div>
+              </div>
+              <Toggle checked={pass.enable_scan_qr} onChange={(v) => updatePass('enable_scan_qr', v)} />
+            </div>
+            <div className="flex items-center justify-between p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A]">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
+                  <Wrench size={16} className="text-[#39FF14]" />
+                </div>
+                <div>
+                  <p className="text-sm text-white font-semibold">Enter Code</p>
+                  <p className="text-[10px] text-gray-500">Opens code redemption modal</p>
+                </div>
+              </div>
+              <Toggle checked={pass.enable_enter_code} onChange={(v) => updatePass('enable_enter_code', v)} />
+            </div>
+          </div>
+
+          {/* Custom CTA Buttons */}
+          <div className="border-t border-[#2C2C2C] pt-4 mt-2">
+            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Custom Buttons</p>
+            <p className="text-xs text-gray-600 mb-3">
+              Additional link buttons shown below the preset actions. Use for external links, purchase pages, etc.
+            </p>
+            {pass.cta_buttons.map((btn, i) => (
+              <div key={i} className="flex items-center gap-2 mb-2">
+                <input
+                  type="text"
+                  value={btn.label || ''}
+                  onChange={(e) => updateCtaButton(i, 'label', e.target.value)}
+                  placeholder="Button label"
+                  className="oga-input flex-1"
                 />
-              </Field>
+                <input
+                  type="url"
+                  value={btn.url || ''}
+                  onChange={(e) => updateCtaButton(i, 'url', e.target.value)}
+                  placeholder="https://..."
+                  className="oga-input flex-1"
+                />
+                <select
+                  value={btn.style || 'outline'}
+                  onChange={(e) => updateCtaButton(i, 'style', e.target.value)}
+                  className="oga-select w-28"
+                >
+                  <option value="primary">Primary</option>
+                  <option value="outline">Outline</option>
+                </select>
+                <button onClick={() => removeCtaButton(i)} className="text-gray-600 hover:text-red-400">
+                  <X size={14} />
+                </button>
+              </div>
+            ))}
+            {pass.cta_buttons.length < 4 && (
+              <button
+                onClick={addCtaButton}
+                className="text-xs text-gray-500 hover:text-[#39FF14] flex items-center gap-1 mt-1"
+              >
+                <Plus size={12} /> Add Custom Button
+              </button>
             )}
-            {(pass.cta_type === 'purchase' || pass.cta_type === 'external_link') && (
-              <Field label="URL" hint="External link destination">
-                <TextInput value={pass.cta_url} onChange={(v) => updatePass('cta_url', v)} placeholder="https://..." />
-              </Field>
-            )}
+          </div>
+        </div>
+      </Section>
+
+{/* ─── Pass Characters ─────────────────────────────────────── */}
+      <Section title="Pass Characters" icon={Users} count={passCharacters.length} defaultOpen={false}>
+        <div className="space-y-3 pt-4">
+          <p className="text-xs text-gray-500">
+            Select which characters are part of this Portal Pass. These appear on the pass detail page and enable the "Browse Passes" feature on each character.
+          </p>
+
+          {/* Selected characters as chips */}
+          {passCharacters.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {passCharacters.map(cid => {
+                const char = characters.find(c => c.id === cid);
+                return (
+                  <div key={cid} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#39FF14]/10 border border-[#39FF14]/30">
+                    <span className="text-xs text-[#39FF14] font-bold">{char?.name || cid}</span>
+                    <button onClick={() => togglePassCharacter(cid)} className="text-[#39FF14]/50 hover:text-red-400">
+                      <X size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Character grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-64 overflow-y-auto">
+            {characters.map(char => {
+              const isSelected = passCharacters.includes(char.id);
+              return (
+                <button
+                  key={char.id}
+                  onClick={() => togglePassCharacter(char.id)}
+                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all text-center
+                    ${isSelected
+                      ? 'border-[#39FF14] bg-[#39FF14]/5'
+                      : 'border-[#2C2C2C] bg-[#0A0A0A] hover:border-[#39FF14]/30'
+                    }`}
+                >
+                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center
+                    ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/20' : 'border-[#2C2C2C]'}`}
+                  >
+                    {isSelected && <Check size={12} className="text-[#39FF14]" />}
+                  </div>
+                  <span className={`text-[10px] font-bold uppercase tracking-wide
+                    ${isSelected ? 'text-[#39FF14]' : 'text-gray-400'}`}>
+                    {char.name}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </Section>

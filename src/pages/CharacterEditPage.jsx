@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { supabase, uploadCharacterImage, getCharacterImageUrl } from '../lib/supabase'
 import ImageUpload from '../components/ImageUpload'
-import CharacterPreview from '../components/CharacterPreview'
+import GameplayVideosPanel from '../components/GameplayVideosPanel'
 import { ArrowLeft, Save, Trash2, Loader2 } from 'lucide-react'
 
 const RARITIES = ['Common', 'Rare', 'Epic', 'Legendary']
@@ -350,6 +350,11 @@ export default function CharacterEditPage() {
               />
             </div>
           </div>
+
+{/* Gameplay Videos (only for existing characters) */}
+          {!isNew && form.id && (
+            <GameplayVideosPanel characterId={form.id} />
+          )}
 
           {/* Display Settings Card */}
           <div className="oga-card p-6">

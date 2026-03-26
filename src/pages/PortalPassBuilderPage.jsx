@@ -1211,7 +1211,10 @@ export default function PortalPassBuilderPage() {
           const passData = Array.isArray(data) ? data[0] : data;
 
           // Separate pass fields from nested tasks/rewards
-          const { tasks: loadedTasks, rewards: loadedRewards, ...passFields } = passData;
+          // RPC returns { pass: {...}, tasks: [...], rewards: [...] }
+          const loadedTasks = passData.tasks;
+          const loadedRewards = passData.rewards;
+          const passFields = passData.pass || passData;
 
           // Format expires_at for datetime-local input
           if (passFields.expires_at) {

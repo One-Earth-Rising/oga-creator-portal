@@ -383,7 +383,7 @@ function AssetCardModal({ asset, onClose, onViewOwner, onViewHistory, onCopy, co
         </button>
 
         {/* Character image */}
-        <div className="relative w-full aspect-square bg-oga-black flex items-center justify-center overflow-hidden">
+        <div className="relative w-full aspect-[3/4] bg-oga-black flex items-center justify-center overflow-hidden">
           {imageUrl ? (
             <img
               src={imageUrl}

@@ -303,10 +303,13 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/85" />
+      
+      {/* 1. MODAL WRAPPER FIX: Added flex-col and overflow-x-hidden */}
       <div
-        className={`relative bg-oga-charcoal border-2 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto ${rarityGlow[asset.rarity] || rarityGlow.Common}`}
+        className={`relative flex flex-col bg-oga-charcoal border-2 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto overflow-x-hidden ${rarityGlow[asset.rarity] || rarityGlow.Common}`}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Close button */}
         <button
           onClick={onClose}
           className="absolute top-3 right-3 z-10 p-1.5 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
@@ -314,7 +317,8 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
           <X size={14} className="text-white/50" />
         </button>
 
-        <div className="relative w-full aspect-square bg-oga-black flex items-center justify-center overflow-hidden">
+        {/* 2. IMAGE BOX FIX: Added shrink-0 and adjusted to aspect-[4/5] */}
+        <div className="relative w-full shrink-0 aspect-[4/5] sm:aspect-[3/4] bg-oga-black flex items-center justify-center overflow-hidden">
           {imageUrl ? (
             <img
               src={imageUrl}
@@ -330,10 +334,12 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
             </div>
           </div>
 
+          {/* Mint number overlay */}
           <div className="absolute top-3 left-3 px-2.5 py-1 bg-black/70 rounded-lg backdrop-blur-sm">
             <span className="font-mono text-oga-green font-bold text-sm">#{asset.mint_number}</span>
           </div>
 
+          {/* Rarity badge overlay */}
           {asset.rarity && (
             <div className="absolute top-3 right-12">
               <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider backdrop-blur-sm ${rarityBadge[asset.rarity] || rarityBadge.Common}`}>
@@ -343,7 +349,9 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
           )}
         </div>
 
-        <div className="p-5">
+        {/* Card body */}
+        <div className="p-5 flex flex-col shrink-0">
+          {/* Name + brand */}
           <div className="mb-4">
             <h2 className="text-xl font-bold uppercase tracking-wider">{asset.character_name}</h2>
             {asset.ip_brand_name && (
@@ -351,20 +359,33 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
             )}
           </div>
 
+          {/* Owner section (Note: ScansPage doesn't have the onViewOwner prop, so adjust accordingly) */}
           <div className="bg-oga-black rounded-lg border border-oga-grey/50 p-3 mb-4">
             <div className="text-[10px] text-white/25 uppercase tracking-widest mb-1.5">Current Owner</div>
-            <div className="font-bold text-sm uppercase tracking-wide">
+            <div className="font-bold text-sm uppercase tracking-wide group-hover:text-oga-green transition-colors">
               {asset.owner_name || 'Unknown'}
             </div>
-            <div className="text-xs text-white/30">
+            <div className="text-xs text-white/30 group-hover:text-white/50 transition-colors">
               {asset.owner_email || '—'}
             </div>
+            {asset.created_at && (
+              <div className="text-[10px] text-white/20 mt-1.5">Acquired {asset.created_at}</div>
+            )}
           </div>
 
-          <div className="flex gap-2">
+          {/* 3. ACTION BUTTONS FIX: Added flex-wrap and pb-1 to prevent bottom clipping */}
+          <div className="flex flex-wrap sm:flex-nowrap gap-2 pb-1">
+            {onViewHistory && (
+              <button
+                onClick={() => onViewHistory(asset)}
+                className="flex-1 min-w-[30%] oga-btn-secondary text-[10px] sm:text-xs py-2.5 flex items-center justify-center gap-1.5"
+              >
+                <History size={12} /> History
+              </button>
+            )}
             <button
               onClick={() => onCopy(asset.asset_id, 'card-' + asset.asset_id)}
-              className="flex-1 oga-btn-secondary text-xs py-2.5 flex items-center justify-center gap-1.5"
+              className="flex-1 min-w-[30%] oga-btn-secondary text-[10px] sm:text-xs py-2.5 flex items-center justify-center gap-1.5"
             >
               {copiedId === 'card-' + asset.asset_id ? (
                 <span className="text-oga-green">Copied!</span>
@@ -372,11 +393,11 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
                 <><Copy size={12} /> <span className="whitespace-nowrap">Copy ID</span></>
               )}
             </button>
-            
-              <a href={`https://oga.oneearthrising.com/#/asset/${asset.asset_id}`}
+            <a
+              href={`https://oga.oneearthrising.com/#/asset/${asset.asset_id}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-1 oga-btn-secondary text-xs py-2.5 flex items-center justify-center gap-1.5"
+              className="flex-1 min-w-[30%] oga-btn-secondary text-[10px] sm:text-xs py-2.5 flex items-center justify-center gap-1.5"
             >
               <ExternalLink size={12} /> Verify
             </a>

@@ -371,7 +371,7 @@ function AssetCardModal({ asset, onClose, onViewOwner, onViewHistory, onCopy, co
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/85" />
       <div
-        className={`relative bg-oga-charcoal border-2 rounded-2xl max-w-sm w-full overflow-hidden ${rarityGlow[asset.rarity] || rarityGlow.Common}`}
+        className={`relative bg-oga-charcoal border-2 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto ${rarityGlow[asset.rarity] || rarityGlow.Common}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}

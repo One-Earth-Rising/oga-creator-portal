@@ -1771,7 +1771,7 @@ export default function PortalPassBuilderPage() {
       try {
         await supabase
           .from('portal_passes')
-          .update({ section_order: JSON.stringify(consumerSectionOrder) })
+          .update({ section_order: consumerSectionOrder })
           .eq('id', passId);
       } catch (e) { console.warn('Section order save:', e); }
 

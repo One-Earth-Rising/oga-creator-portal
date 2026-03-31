@@ -1179,6 +1179,7 @@ export default function PortalPassBuilderPage() {
     cta_buttons: [],
     enable_scan_qr: false,
     enable_enter_code: false,
+    section_order: ['cta', 'characters', 'objectives', 'rewards', 'promo', 'explainers', 'completion'],
   });
 
   const [tasks, setTasks] = useState([]);
@@ -1208,6 +1209,22 @@ export default function PortalPassBuilderPage() {
 
   useEffect(() => {
     localStorage.setItem('oga_pp_section_order', JSON.stringify(sectionOrder));
+  }, [sectionOrder]);
+
+  const adminToConsumerMap = {
+    'cta': 'cta', 'characters': 'characters', 'tasks': 'objectives',
+    'rewards': 'rewards', 'promo': 'promo', 'explainers': 'explainers',
+    'special': 'completion',
+  };
+
+  const consumerSectionOrder = sectionOrder
+    .filter(key => adminToConsumerMap[key])
+    .map(key => adminToConsumerMap[key]);
+
+  useEffect(() => {
+    if (consumerSectionOrder.length > 0) {
+      updatePass('section_order', consumerSectionOrder);
+    }
   }, [sectionOrder]);
 
   // IP Brands for auto-populate
@@ -1751,9 +1768,17 @@ export default function PortalPassBuilderPage() {
         if (pcError) console.warn('Pass characters save:', pcError);
       }
 
+      try {
+        await supabase
+          .from('portal_passes')
+          .update({ section_order: JSON.stringify(consumerSectionOrder) })
+          .eq('id', passId);
+      } catch (e) { console.warn('Section order save:', e); }
+
       setDeletedTaskIds([]);
       setDeletedRewardIds([]);
       showToast('Portal Pass saved successfully');
+
 
       // If new pass, redirect to the edit URL
       if (isNew) {

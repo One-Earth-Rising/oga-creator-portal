@@ -623,7 +623,7 @@ function RewardCard({ reward, onChange, onDelete }) {
 }
 
 // ─── Promo Block Card (JSONB editor for promo_sections) ─────────────
-function PromoBlockCard({ block, index, onChange, onDelete }) {
+function PromoBlockCard({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown }) {
   const [expanded, setExpanded] = useState(block._isNew || false);
 
   const update = (field, value) => {
@@ -651,6 +651,10 @@ function PromoBlockCard({ block, index, onChange, onDelete }) {
   return (
     <div className="border border-[#2C2C2C] rounded-lg bg-[#0A0A0A] overflow-hidden group">
       <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <button onClick={onMoveUp} disabled={index === 0} className="text-gray-600 hover:text-[#C084FC] disabled:opacity-20 disabled:cursor-not-allowed"><MoveUp size={14} /></button>
+          <button onClick={onMoveDown} disabled={index === total - 1} className="text-gray-600 hover:text-[#C084FC] disabled:opacity-20 disabled:cursor-not-allowed"><MoveDown size={14} /></button>
+        </div>
         <div className="w-7 h-7 rounded flex items-center justify-center bg-[#C084FC]/10 text-[#C084FC] flex-shrink-0">
           <Megaphone size={14} />
         </div>
@@ -742,7 +746,7 @@ function PromoBlockCard({ block, index, onChange, onDelete }) {
 }
 
 // ─── Explainer Block Card (JSONB editor for task_explainers) ────────
-function ExplainerBlockCard({ block, index, onChange, onDelete, onSaveAsTemplate }) {
+function ExplainerBlockCard({ block, index, total, onChange, onDelete, onMoveUp, onMoveDown, onSaveAsTemplate }) {
   const [expanded, setExpanded] = useState(block._isNew || false);
   const [savingTemplate, setSavingTemplate] = useState(false);
 
@@ -767,6 +771,10 @@ function ExplainerBlockCard({ block, index, onChange, onDelete, onSaveAsTemplate
   return (
     <div className="border border-[#2C2C2C] rounded-lg bg-[#0A0A0A] overflow-hidden group">
       <div className="flex items-center gap-3 px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <button onClick={onMoveUp} disabled={index === 0} className="text-gray-600 hover:text-[#00BFFF] disabled:opacity-20 disabled:cursor-not-allowed"><MoveUp size={14} /></button>
+          <button onClick={onMoveDown} disabled={index === total - 1} className="text-gray-600 hover:text-[#00BFFF] disabled:opacity-20 disabled:cursor-not-allowed"><MoveDown size={14} /></button>
+        </div>
         <div className="w-7 h-7 rounded flex items-center justify-center bg-[#00BFFF]/10 text-[#00BFFF] flex-shrink-0">
           {selectedIcon ? <selectedIcon.preview size={14} /> : <HelpCircle size={14} />}
         </div>
@@ -1361,6 +1369,14 @@ export default function PortalPassBuilderPage() {
     updatePass('promo_sections', pass.promo_sections.filter((_, i) => i !== index));
   };
 
+  const movePromoBlock = (fromIndex, direction) => {
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= pass.promo_sections.length) return;
+    const updated = [...pass.promo_sections];
+    [updated[fromIndex], updated[toIndex]] = [updated[toIndex], updated[fromIndex]];
+    updatePass('promo_sections', updated);
+  };
+
   // ── Task Explainers Management ────────────────────────────────────
   const addExplainerBlock = () => {
     updatePass('task_explainers', [
@@ -1377,6 +1393,14 @@ export default function PortalPassBuilderPage() {
 
   const deleteExplainerBlock = (index) => {
     updatePass('task_explainers', pass.task_explainers.filter((_, i) => i !== index));
+  };
+
+  const moveExplainerBlock = (fromIndex, direction) => {
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= pass.task_explainers.length) return;
+    const updated = [...pass.task_explainers];
+    [updated[fromIndex], updated[toIndex]] = [updated[toIndex], updated[fromIndex]];
+    updatePass('task_explainers', updated);
   };
 
   // ── Brand Auto-Populate ───────────────────────────────────────
@@ -2174,8 +2198,11 @@ export default function PortalPassBuilderPage() {
               key={i}
               block={block}
               index={i}
+              total={pass.promo_sections.length}
               onChange={(updated) => updatePromoBlock(i, updated)}
               onDelete={() => deletePromoBlock(i)}
+              onMoveUp={() => movePromoBlock(i, -1)}
+              onMoveDown={() => movePromoBlock(i, 1)}
             />
           ))}
 
@@ -2217,8 +2244,11 @@ export default function PortalPassBuilderPage() {
               key={i}
               block={block}
               index={i}
+              total={pass.task_explainers.length}
               onChange={(updated) => updateExplainerBlock(i, updated)}
               onDelete={() => deleteExplainerBlock(i)}
+              onMoveUp={() => moveExplainerBlock(i, -1)}
+              onMoveDown={() => moveExplainerBlock(i, 1)}
               onSaveAsTemplate={saveAsTemplate}
             />
           ))}

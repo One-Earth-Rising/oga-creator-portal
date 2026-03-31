@@ -1198,10 +1198,17 @@ export default function PortalPassBuilderPage() {
 
   // Pass characters (junction table)
   const [passCharacters, setPassCharacters] = useState([]);
-  const [sectionOrder, setSectionOrder] = useState([
-    'settings', 'hero', 'cta', 'characters', 'tasks', 'rewards',
-    'special', 'promo', 'explainers', 'preview',
-  ]);
+  const [sectionOrder, setSectionOrder] = useState(() => {
+    try {
+      const saved = localStorage.getItem('oga_pp_section_order');
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return ['settings', 'hero', 'cta', 'characters', 'tasks', 'rewards', 'special', 'promo', 'explainers', 'preview'];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('oga_pp_section_order', JSON.stringify(sectionOrder));
+  }, [sectionOrder]);
 
   // IP Brands for auto-populate
   const [brands, setBrands] = useState([]);

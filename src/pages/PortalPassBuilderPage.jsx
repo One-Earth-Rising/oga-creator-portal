@@ -137,30 +137,50 @@ function Toast({ message, type = 'success', onClose }) {
 }
 
 // ─── Collapsible Section ────────────────────────────────────────────
-function Section({ title, icon: Icon, children, defaultOpen = true, count, badge }) {
+function Section({ title, icon: Icon, children, defaultOpen = true, count, badge, onMoveUp, onMoveDown, isFirst, isLast }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="oga-card mb-4">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-5 py-4 text-left"
-      >
-        <div className="flex items-center gap-3">
-          {Icon && <Icon size={18} className="text-[#39FF14]" />}
-          <span className="text-white font-bold text-sm uppercase tracking-wider">{title}</span>
-          {count !== undefined && (
-            <span className="text-xs bg-[#39FF14]/10 text-[#39FF14] px-2 py-0.5 rounded-full font-medium">
-              {count}
-            </span>
-          )}
-          {badge && (
-            <span className="text-xs bg-[#39FF14]/20 text-[#39FF14] px-2 py-0.5 rounded font-bold uppercase">
-              {badge}
-            </span>
-          )}
-        </div>
-        {open ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
-      </button>
+    <div className="oga-card mb-4 group/section">
+      <div className="flex items-center">
+        {(onMoveUp || onMoveDown) && (
+          <div className="flex flex-col gap-0.5 pl-3 opacity-0 group-hover/section:opacity-100 transition-opacity">
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveUp?.(); }}
+              disabled={isFirst}
+              className="text-gray-600 hover:text-[#39FF14] disabled:opacity-20 disabled:cursor-not-allowed p-0.5"
+            >
+              <MoveUp size={12} />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onMoveDown?.(); }}
+              disabled={isLast}
+              className="text-gray-600 hover:text-[#39FF14] disabled:opacity-20 disabled:cursor-not-allowed p-0.5"
+            >
+              <MoveDown size={12} />
+            </button>
+          </div>
+        )}
+        <button
+          onClick={() => setOpen(!open)}
+          className="flex-1 flex items-center justify-between px-5 py-4 text-left"
+        >
+          <div className="flex items-center gap-3">
+            {Icon && <Icon size={18} className="text-[#39FF14]" />}
+            <span className="text-white font-bold text-sm uppercase tracking-wider">{title}</span>
+            {count !== undefined && (
+              <span className="text-xs bg-[#39FF14]/10 text-[#39FF14] px-2 py-0.5 rounded-full font-medium">
+                {count}
+              </span>
+            )}
+            {badge && (
+              <span className="text-xs bg-[#39FF14]/20 text-[#39FF14] px-2 py-0.5 rounded font-bold uppercase">
+                {badge}
+              </span>
+            )}
+          </div>
+          {open ? <ChevronUp size={18} className="text-gray-500" /> : <ChevronDown size={18} className="text-gray-500" />}
+        </button>
+      </div>
       {open && <div className="px-5 pb-5 border-t border-[#2C2C2C]">{children}</div>}
     </div>
   );
@@ -1178,6 +1198,10 @@ export default function PortalPassBuilderPage() {
 
   // Pass characters (junction table)
   const [passCharacters, setPassCharacters] = useState([]);
+  const [sectionOrder, setSectionOrder] = useState([
+    'settings', 'hero', 'cta', 'characters', 'tasks', 'rewards',
+    'special', 'promo', 'explainers', 'preview',
+  ]);
 
   // IP Brands for auto-populate
   const [brands, setBrands] = useState([]);
@@ -1439,6 +1463,16 @@ export default function PortalPassBuilderPage() {
   };
 
   // ── Pass Characters Management ────────────────────────────────
+  const moveSection = (fromIndex, direction) => {
+    const toIndex = fromIndex + direction;
+    if (toIndex < 0 || toIndex >= sectionOrder.length) return;
+    setSectionOrder(prev => {
+      const updated = [...prev];
+      [updated[fromIndex], updated[toIndex]] = [updated[toIndex], updated[fromIndex]];
+      return updated;
+    });
+  };
+
   const togglePassCharacter = (charId) => {
     setPassCharacters(prev =>
       prev.includes(charId) ? prev.filter(c => c !== charId) : [...prev, charId]
@@ -1797,427 +1831,267 @@ export default function PortalPassBuilderPage() {
         </div>
       </div>
 
-      {/* ─── Pass Settings ───────────────────────────────────────── */}
-      <Section title="Pass Settings" icon={Sparkles} defaultOpen={isNew}>
-        <div className="space-y-4 pt-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Pass Name">
-              <TextInput value={pass.name} onChange={(v) => updatePass('name', v)} placeholder="e.g., FINAL BOSS SOUR × OGA" />
-            </Field>
-            <Field label="Slug" hint="Unique identifier, no spaces">
-              <TextInput value={pass.slug} onChange={(v) => updatePass('slug', v)} placeholder="e.g., fbs_season_1" />
-            </Field>
-            <Field label="Type">
-              <Select value={pass.type} onChange={(v) => updatePass('type', v)} options={PASS_TYPES} />
-            </Field>
-          </div>
+      {sectionOrder.map((key, idx) => {
+        const sectionProps = {
+          onMoveUp: () => moveSection(idx, -1),
+          onMoveDown: () => moveSection(idx, 1),
+          isFirst: idx === 0,
+          isLast: idx === sectionOrder.length - 1,
+        };
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Field label="Season Name">
-              <TextInput value={pass.season_name} onChange={(v) => updatePass('season_name', v)} placeholder="e.g., SEASON 1" />
-            </Field>
-            <Field label="Linked Character">
-              <Select
-                value={pass.character_id}
-                onChange={(v) => updatePass('character_id', v)}
-                placeholder="None (multi-character pass)"
-                options={characters.map(c => ({ value: c.id, label: c.name }))}
-              />
-            </Field>
-            <Field label="Expires At">
-              <input
-                type="datetime-local"
-                value={pass.expires_at || ''}
-                onChange={(e) => updatePass('expires_at', e.target.value)}
-                className="oga-input"
-              />
-            </Field>
-          </div>
+        switch (key) {
+          case 'settings':
+            return (
+              <Section key={key} title="Pass Settings" icon={Sparkles} defaultOpen={isNew} {...sectionProps}>
+                <div className="space-y-4 pt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="Pass Name">
+                      <TextInput value={pass.name} onChange={(v) => updatePass('name', v)} placeholder="e.g., FINAL BOSS SOUR × OGA" />
+                    </Field>
+                    <Field label="Slug" hint="Unique identifier, no spaces">
+                      <TextInput value={pass.slug} onChange={(v) => updatePass('slug', v)} placeholder="e.g., fbs_season_1" />
+                    </Field>
+                    <Field label="Type">
+                      <Select value={pass.type} onChange={(v) => updatePass('type', v)} options={PASS_TYPES} />
+                    </Field>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <Field label="Season Name">
+                      <TextInput value={pass.season_name} onChange={(v) => updatePass('season_name', v)} placeholder="e.g., SEASON 1" />
+                    </Field>
+                    <Field label="Linked Character">
+                      <Select value={pass.character_id} onChange={(v) => updatePass('character_id', v)} placeholder="None (multi-character pass)" options={characters.map(c => ({ value: c.id, label: c.name }))} />
+                    </Field>
+                    <Field label="Expires At">
+                      <input type="datetime-local" value={pass.expires_at || ''} onChange={(e) => updatePass('expires_at', e.target.value)} className="oga-input" />
+                    </Field>
+                  </div>
+                  <Field label="Description">
+                    <TextArea value={pass.description} onChange={(v) => updatePass('description', v)} placeholder="Describe the pass to players" />
+                  </Field>
+                  <div className="border-t border-[#2C2C2C] pt-4 mt-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Brand / Co-Brand</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Field label="Brand / IP">
+                        <select value="" onChange={(e) => { if (e.target.value) handleBrandSelect(e.target.value); }} className="oga-select mb-2">
+                          <option value="">Auto-fill from IP Brand...</option>
+                          {brands.map(b => (<option key={b.id} value={b.id}>{b.display_name || b.name}</option>))}
+                        </select>
+                        <TextInput value={pass.brand_name} onChange={(v) => updatePass('brand_name', v)} placeholder="e.g., Final Boss Sour" />
+                        <p className="text-[10px] text-gray-600 mt-1">Select a brand above to auto-fill, or type manually</p>
+                      </Field>
+                      <Field label="Brand Logo">
+                        <ImageUploader value={pass.brand_logo_url} onChange={(v) => updatePass('brand_logo_url', v)} pathPrefix="brands" label="Brand logo" />
+                      </Field>
+                      <Field label="Brand Card Logo">
+                        <ImageUploader value={pass.brand_card_logo_url} onChange={(v) => updatePass('brand_card_logo_url', v)} pathPrefix="brands" label="Brand card logo" />
+                      </Field>
+                    </div>
+                  </div>
+                  <div className="border-t border-[#2C2C2C] pt-4 mt-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">XP Curve</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <Field label="Total Levels"><NumberInput value={pass.total_levels} onChange={(v) => updatePass('total_levels', v)} min={1} max={999} /></Field>
+                      <Field label="XP per Level"><NumberInput value={pass.xp_per_level} onChange={(v) => updatePass('xp_per_level', v)} min={1} /></Field>
+                      <Field label="Total XP"><div className="oga-input bg-[#121212] text-[#39FF14] font-bold cursor-default">{((pass.total_levels || 0) * (pass.xp_per_level || 0)).toLocaleString()}</div></Field>
+                    </div>
+                  </div>
+                </div>
+              </Section>
+            );
 
-          <Field label="Description">
-            <TextArea value={pass.description} onChange={(v) => updatePass('description', v)} placeholder="Describe the pass to players" />
-          </Field>
+          case 'hero':
+            return (
+              <Section key={key} title="Hero & Branding" icon={Image} defaultOpen={false} {...sectionProps}>
+                <div className="space-y-4 pt-4">
+                  <p className="text-xs text-gray-500">These fields control the hero area of the Portal Pass detail page shown to players.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Headline" hint="Bold hero text, e.g., BUY CANDY. UNLOCK LEGENDS."><TextInput value={pass.headline} onChange={(v) => updatePass('headline', v)} placeholder="e.g., BUY CANDY. UNLOCK LEGENDS." /></Field>
+                    <Field label="Subheadline" hint="Secondary descriptive text"><TextInput value={pass.subheadline} onChange={(v) => updatePass('subheadline', v)} placeholder="e.g., Collect all 4 Final Boss Sour characters" /></Field>
+                  </div>
+                  <Field label="Hero Banner Image" hint="Full-width top banner on the detail page (recommended 1200×400)">
+                    <ImageUploader value={pass.hero_banner_url} onChange={(v) => updatePass('hero_banner_url', v)} pathPrefix="pass-banners" label="Hero banner" />
+                  </Field>
+                </div>
+              </Section>
+            );
 
-          {/* Brand Fields */}
-          <div className="border-t border-[#2C2C2C] pt-4 mt-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Brand / Co-Brand</p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Field label="Brand / IP">
-                <select
-                  value=""
-                  onChange={(e) => { if (e.target.value) handleBrandSelect(e.target.value); }}
-                  className="oga-select mb-2"
-                >
-                  <option value="">Auto-fill from IP Brand...</option>
-                  {brands.map(b => (
-                    <option key={b.id} value={b.id}>{b.display_name || b.name}</option>
+          case 'cta':
+            return (
+              <Section key={key} title="Call to Action" icon={Link} defaultOpen={false} {...sectionProps}>
+                <div className="space-y-4 pt-4">
+                  <p className="text-xs text-gray-500">Toggle built-in app behaviors. These appear as primary buttons on the Portal Pass detail page.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#39FF14]/10 flex items-center justify-center"><ScanLine size={16} className="text-[#39FF14]" /></div>
+                        <div><p className="text-sm text-white font-semibold">Scan QR Code</p><p className="text-[10px] text-gray-500">Opens camera scanner in-app</p></div>
+                      </div>
+                      <Toggle checked={pass.enable_scan_qr} onChange={(v) => updatePass('enable_scan_qr', v)} />
+                    </div>
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A]">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-[#39FF14]/10 flex items-center justify-center"><Wrench size={16} className="text-[#39FF14]" /></div>
+                        <div><p className="text-sm text-white font-semibold">Enter Code</p><p className="text-[10px] text-gray-500">Opens code redemption modal</p></div>
+                      </div>
+                      <Toggle checked={pass.enable_enter_code} onChange={(v) => updatePass('enable_enter_code', v)} />
+                    </div>
+                  </div>
+                  <div className="border-t border-[#2C2C2C] pt-4 mt-2">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Custom Buttons</p>
+                    <p className="text-xs text-gray-600 mb-3">Additional link buttons shown below the preset actions.</p>
+                    {pass.cta_buttons.map((btn, i) => (
+                      <div key={i} className="flex items-center gap-2 mb-2">
+                        <input type="text" value={btn.label || ''} onChange={(e) => updateCtaButton(i, 'label', e.target.value)} placeholder="Button label" className="oga-input flex-1" />
+                        <input type="url" value={btn.url || ''} onChange={(e) => updateCtaButton(i, 'url', e.target.value)} placeholder="https://..." className="oga-input flex-1" />
+                        <select value={btn.style || 'outline'} onChange={(e) => updateCtaButton(i, 'style', e.target.value)} className="oga-select w-28">
+                          <option value="primary">Primary</option><option value="outline">Outline</option>
+                        </select>
+                        <button onClick={() => removeCtaButton(i)} className="text-gray-600 hover:text-red-400"><X size={14} /></button>
+                      </div>
+                    ))}
+                    {pass.cta_buttons.length < 4 && (
+                      <button onClick={addCtaButton} className="text-xs text-gray-500 hover:text-[#39FF14] flex items-center gap-1 mt-1"><Plus size={12} /> Add Custom Button</button>
+                    )}
+                  </div>
+                </div>
+              </Section>
+            );
+
+          case 'characters':
+            return (
+              <Section key={key} title="Pass Characters" icon={Users} count={passCharacters.length} defaultOpen={false} {...sectionProps}>
+                <div className="space-y-3 pt-4">
+                  <p className="text-xs text-gray-500">Select which characters are part of this Portal Pass.</p>
+                  {passCharacters.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-2">
+                      {passCharacters.map(cid => {
+                        const char = characters.find(c => c.id === cid);
+                        return (
+                          <div key={cid} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#39FF14]/10 border border-[#39FF14]/30">
+                            <span className="text-xs text-[#39FF14] font-bold">{char?.name || cid}</span>
+                            <button onClick={() => togglePassCharacter(cid)} className="text-[#39FF14]/50 hover:text-red-400"><X size={12} /></button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-64 overflow-y-auto">
+                    {characters.map(char => {
+                      const isSelected = passCharacters.includes(char.id);
+                      return (
+                        <button key={char.id} onClick={() => togglePassCharacter(char.id)} className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all text-center ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/5' : 'border-[#2C2C2C] bg-[#0A0A0A] hover:border-[#39FF14]/30'}`}>
+                          <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/20' : 'border-[#2C2C2C]'}`}>{isSelected && <Check size={12} className="text-[#39FF14]" />}</div>
+                          <span className={`text-[10px] font-bold uppercase tracking-wide ${isSelected ? 'text-[#39FF14]' : 'text-gray-400'}`}>{char.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </Section>
+            );
+
+          case 'tasks':
+            return (
+              <Section key={key} title="Tasks" icon={Swords} count={tasks.length} defaultOpen={true} {...sectionProps}>
+                <div className="space-y-2 pt-4">
+                  {tasks.length === 0 && (
+                    <div className="text-center py-8 text-gray-500"><Swords size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm">No tasks yet. Add your first task to get started.</p></div>
+                  )}
+                  {tasks.map((task, i) => (
+                    <TaskCard key={task.id} task={task} index={i} total={tasks.length} characters={characters} games={games} onChange={(updated) => updateTask(i, updated)} onDelete={() => deleteTask(i)} onMoveUp={() => moveTask(i, -1)} onMoveDown={() => moveTask(i, 1)} />
                   ))}
-                </select>
-                <TextInput value={pass.brand_name} onChange={(v) => updatePass('brand_name', v)} placeholder="e.g., Final Boss Sour" />
-                <p className="text-[10px] text-gray-600 mt-1">Select a brand above to auto-fill, or type manually</p>
-              </Field>
-              <Field label="Brand Logo">
-                <ImageUploader
-                  value={pass.brand_logo_url}
-                  onChange={(v) => updatePass('brand_logo_url', v)}
-                  pathPrefix="brands"
-                  label="Brand logo"
-                />
-              </Field>
-              <Field label="Brand Card Logo">
-                <ImageUploader
-                  value={pass.brand_card_logo_url}
-                  onChange={(v) => updatePass('brand_card_logo_url', v)}
-                  pathPrefix="brands"
-                  label="Brand card logo"
-                />
-              </Field>
-            </div>
-          </div>
-
-          {/* XP Curve */}
-          <div className="border-t border-[#2C2C2C] pt-4 mt-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">XP Curve</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Field label="Total Levels">
-                <NumberInput value={pass.total_levels} onChange={(v) => updatePass('total_levels', v)} min={1} max={999} />
-              </Field>
-              <Field label="XP per Level">
-                <NumberInput value={pass.xp_per_level} onChange={(v) => updatePass('xp_per_level', v)} min={1} />
-              </Field>
-              <Field label="Total XP">
-                <div className="oga-input bg-[#121212] text-[#39FF14] font-bold cursor-default">
-                  {((pass.total_levels || 0) * (pass.xp_per_level || 0)).toLocaleString()}
+                  <button onClick={() => setShowTaskPalette(true)} className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C] rounded-lg text-gray-500 hover:border-[#39FF14]/50 hover:text-[#39FF14] transition-colors"><Plus size={16} /><span className="text-sm font-medium">Add Task</span></button>
                 </div>
-              </Field>
-            </div>
-          </div>
-        </div>
-      </Section>
+              </Section>
+            );
 
-      {/* ─── NEW: Hero & Branding ────────────────────────────────── */}
-      <Section title="Hero & Branding" icon={Image} defaultOpen={false}>
-        <div className="space-y-4 pt-4">
-          <p className="text-xs text-gray-500">
-            These fields control the hero area of the Portal Pass detail page shown to players.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Headline" hint="Bold hero text, e.g., BUY CANDY. UNLOCK LEGENDS.">
-              <TextInput value={pass.headline} onChange={(v) => updatePass('headline', v)} placeholder="e.g., BUY CANDY. UNLOCK LEGENDS." />
-            </Field>
-            <Field label="Subheadline" hint="Secondary descriptive text">
-              <TextInput value={pass.subheadline} onChange={(v) => updatePass('subheadline', v)} placeholder="e.g., Collect all 4 Final Boss Sour characters" />
-            </Field>
-          </div>
-          <Field label="Hero Banner Image" hint="Full-width top banner on the detail page (recommended 1200×400)">
-            <ImageUploader
-              value={pass.hero_banner_url}
-              onChange={(v) => updatePass('hero_banner_url', v)}
-              pathPrefix="pass-banners"
-              label="Hero banner"
-            />
-          </Field>
-        </div>
-      </Section>
-
-      {/* ─── Call to Action ──────────────────────────────────────── */}
-      <Section title="Call to Action" icon={Link} defaultOpen={false}>
-        <div className="space-y-4 pt-4">
-          {/* Preset Toggles */}
-          <p className="text-xs text-gray-500">
-            Toggle built-in app behaviors. These appear as primary buttons on the Portal Pass detail page.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="flex items-center justify-between p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
-                  <ScanLine size={16} className="text-[#39FF14]" />
+          case 'rewards':
+            return (
+              <Section key={key} title="Level Rewards" icon={Gift} count={rewards.length} {...sectionProps}>
+                <div className="space-y-2 pt-4">
+                  {rewards.length === 0 && (
+                    <div className="text-center py-8 text-gray-500"><Gift size={32} className="mx-auto mb-2 opacity-30" /><p className="text-sm">No rewards yet. Add milestone rewards at level thresholds.</p></div>
+                  )}
+                  {rewards.map((reward, i) => (<RewardCard key={reward.id} reward={reward} onChange={(updated) => updateReward(i, updated)} onDelete={() => deleteReward(i)} />))}
+                  <button onClick={addReward} className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C] rounded-lg text-gray-500 hover:border-[#FFD700]/50 hover:text-[#FFD700] transition-colors"><Plus size={16} /><span className="text-sm font-medium">Add Reward</span></button>
                 </div>
-                <div>
-                  <p className="text-sm text-white font-semibold">Scan QR Code</p>
-                  <p className="text-[10px] text-gray-500">Opens camera scanner in-app</p>
-                </div>
-              </div>
-              <Toggle checked={pass.enable_scan_qr} onChange={(v) => updatePass('enable_scan_qr', v)} />
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg border border-[#2C2C2C] bg-[#0A0A0A]">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-[#39FF14]/10 flex items-center justify-center">
-                  <Wrench size={16} className="text-[#39FF14]" />
-                </div>
-                <div>
-                  <p className="text-sm text-white font-semibold">Enter Code</p>
-                  <p className="text-[10px] text-gray-500">Opens code redemption modal</p>
-                </div>
-              </div>
-              <Toggle checked={pass.enable_enter_code} onChange={(v) => updatePass('enable_enter_code', v)} />
-            </div>
-          </div>
+              </Section>
+            );
 
-          {/* Custom CTA Buttons */}
-          <div className="border-t border-[#2C2C2C] pt-4 mt-2">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Custom Buttons</p>
-            <p className="text-xs text-gray-600 mb-3">
-              Additional link buttons shown below the preset actions. Use for external links, purchase pages, etc.
-            </p>
-            {pass.cta_buttons.map((btn, i) => (
-              <div key={i} className="flex items-center gap-2 mb-2">
-                <input
-                  type="text"
-                  value={btn.label || ''}
-                  onChange={(e) => updateCtaButton(i, 'label', e.target.value)}
-                  placeholder="Button label"
-                  className="oga-input flex-1"
-                />
-                <input
-                  type="url"
-                  value={btn.url || ''}
-                  onChange={(e) => updateCtaButton(i, 'url', e.target.value)}
-                  placeholder="https://..."
-                  className="oga-input flex-1"
-                />
-                <select
-                  value={btn.style || 'outline'}
-                  onChange={(e) => updateCtaButton(i, 'style', e.target.value)}
-                  className="oga-select w-28"
-                >
-                  <option value="primary">Primary</option>
-                  <option value="outline">Outline</option>
-                </select>
-                <button onClick={() => removeCtaButton(i)} className="text-gray-600 hover:text-red-400">
-                  <X size={14} />
-                </button>
-              </div>
-            ))}
-            {pass.cta_buttons.length < 4 && (
-              <button
-                onClick={addCtaButton}
-                className="text-xs text-gray-500 hover:text-[#39FF14] flex items-center gap-1 mt-1"
-              >
-                <Plus size={12} /> Add Custom Button
-              </button>
-            )}
-          </div>
-        </div>
-      </Section>
-
-{/* ─── Pass Characters ─────────────────────────────────────── */}
-      <Section title="Pass Characters" icon={Users} count={passCharacters.length} defaultOpen={false}>
-        <div className="space-y-3 pt-4">
-          <p className="text-xs text-gray-500">
-            Select which characters are part of this Portal Pass. These appear on the pass detail page and enable the "Browse Passes" feature on each character.
-          </p>
-
-          {/* Selected characters as chips */}
-          {passCharacters.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {passCharacters.map(cid => {
-                const char = characters.find(c => c.id === cid);
-                return (
-                  <div key={cid} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#39FF14]/10 border border-[#39FF14]/30">
-                    <span className="text-xs text-[#39FF14] font-bold">{char?.name || cid}</span>
-                    <button onClick={() => togglePassCharacter(cid)} className="text-[#39FF14]/50 hover:text-red-400">
-                      <X size={12} />
-                    </button>
+          case 'special':
+            return (
+              <Section key={key} title="Special Reward" icon={Trophy} badge="Completion Prize" {...sectionProps}>
+                <div className="space-y-4 pt-4">
+                  <p className="text-xs text-gray-500">The special reward is granted when a player completes the entire pass.</p>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <Field label="Reward Name"><TextInput value={pass.special_reward_name} onChange={(v) => updatePass('special_reward_name', v)} placeholder="e.g., THE FINAL BOSS" /></Field>
+                    <Field label="Granted Character"><Select value={pass.special_reward_character_id} onChange={(v) => updatePass('special_reward_character_id', v)} placeholder="None (cosmetic reward only)" options={characters.map(c => ({ value: c.id, label: c.name }))} /></Field>
                   </div>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Character grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 max-h-64 overflow-y-auto">
-            {characters.map(char => {
-              const isSelected = passCharacters.includes(char.id);
-              return (
-                <button
-                  key={char.id}
-                  onClick={() => togglePassCharacter(char.id)}
-                  className={`flex flex-col items-center gap-1.5 p-3 rounded-lg border transition-all text-center
-                    ${isSelected
-                      ? 'border-[#39FF14] bg-[#39FF14]/5'
-                      : 'border-[#2C2C2C] bg-[#0A0A0A] hover:border-[#39FF14]/30'
-                    }`}
-                >
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center
-                    ${isSelected ? 'border-[#39FF14] bg-[#39FF14]/20' : 'border-[#2C2C2C]'}`}
-                  >
-                    {isSelected && <Check size={12} className="text-[#39FF14]" />}
+                  <Field label="Description"><TextArea value={pass.special_reward_description} onChange={(v) => updatePass('special_reward_description', v)} placeholder="Describe the ultimate reward" /></Field>
+                  <Field label="Reward Image"><ImageUploader value={pass.special_reward_image_url} onChange={(v) => updatePass('special_reward_image_url', v)} pathPrefix="pass-special" label="Special reward" /></Field>
+                  <div className="border-t border-[#2C2C2C] pt-4 mt-4">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Consumer-Facing Completion Copy</p>
+                    <p className="text-xs text-gray-600 mb-3">These are shown on the Portal Pass detail page as the completion incentive.</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="Completion Reward Title" hint="e.g., UNLOCK THE FINAL BOSS"><TextInput value={pass.completion_reward_title} onChange={(v) => updatePass('completion_reward_title', v)} placeholder="e.g., UNLOCK THE FINAL BOSS" /></Field>
+                      <Field label="Completion Reward Description"><TextArea value={pass.completion_reward_description} onChange={(v) => updatePass('completion_reward_description', v)} placeholder="What players see as the completion incentive" rows={2} /></Field>
+                    </div>
                   </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-wide
-                    ${isSelected ? 'text-[#39FF14]' : 'text-gray-400'}`}>
-                    {char.name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </Section>
+                </div>
+              </Section>
+            );
 
-      {/* ─── Tasks ───────────────────────────────────────────────── */}
-      <Section title="Tasks" icon={Swords} count={tasks.length} defaultOpen={true}>
-        <div className="space-y-2 pt-4">
-          {tasks.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Swords size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No tasks yet. Add your first task to get started.</p>
-            </div>
-          )}
+          case 'promo':
+            return (
+              <Section key={key} title="Brand Promo Sections" icon={Megaphone} count={pass.promo_sections.length} defaultOpen={false} {...sectionProps}>
+                <div className="space-y-2 pt-4">
+                  <p className="text-xs text-gray-500 mb-3">Flexible promotional blocks shown on the Portal Pass detail page.</p>
+                  {pass.promo_sections.length === 0 && (
+                    <div className="text-center py-6 text-gray-500"><Megaphone size={28} className="mx-auto mb-2 opacity-30" /><p className="text-sm">No promo sections yet.</p></div>
+                  )}
+                  {pass.promo_sections.map((block, i) => (
+                    <PromoBlockCard key={i} block={block} index={i} total={pass.promo_sections.length} onChange={(updated) => updatePromoBlock(i, updated)} onDelete={() => deletePromoBlock(i)} onMoveUp={() => movePromoBlock(i, -1)} onMoveDown={() => movePromoBlock(i, 1)} />
+                  ))}
+                  <button onClick={addPromoBlock} className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C] rounded-lg text-gray-500 hover:border-[#C084FC]/50 hover:text-[#C084FC] transition-colors"><Plus size={16} /><span className="text-sm font-medium">Add Promo Section</span></button>
+                </div>
+              </Section>
+            );
 
-          {tasks.map((task, i) => (
-            <TaskCard
-              key={task.id}
-              task={task}
-              index={i}
-              total={tasks.length}
-              characters={characters}
-              games={games}
-              onChange={(updated) => updateTask(i, updated)}
-              onDelete={() => deleteTask(i)}
-              onMoveUp={() => moveTask(i, -1)}
-              onMoveDown={() => moveTask(i, 1)}
-            />
-          ))}
+          case 'explainers':
+            return (
+              <Section key={key} title="Task Explainers" icon={BookOpen} count={pass.task_explainers.length} defaultOpen={false} {...sectionProps}>
+                <div className="space-y-2 pt-4">
+                  <p className="text-xs text-gray-500 mb-3">Educational how-to blocks that explain features to players.</p>
+                  {pass.task_explainers.length === 0 && (
+                    <div className="text-center py-6 text-gray-500"><BookOpen size={28} className="mx-auto mb-2 opacity-30" /><p className="text-sm">No explainers yet.</p></div>
+                  )}
+                  {pass.task_explainers.map((block, i) => (
+                    <ExplainerBlockCard key={i} block={block} index={i} total={pass.task_explainers.length} onChange={(updated) => updateExplainerBlock(i, updated)} onDelete={() => deleteExplainerBlock(i)} onMoveUp={() => moveExplainerBlock(i, -1)} onMoveDown={() => moveExplainerBlock(i, 1)} onSaveAsTemplate={saveAsTemplate} />
+                  ))}
+                  <div className="flex gap-2">
+                    <button onClick={addExplainerBlock} className="flex-1 flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C] rounded-lg text-gray-500 hover:border-[#00BFFF]/50 hover:text-[#00BFFF] transition-colors"><Plus size={16} /><span className="text-sm font-medium">Add Explainer</span></button>
+                    {explainerTemplates.length > 0 && (
+                      <button onClick={() => setShowTemplatePicker(true)} className="flex items-center gap-2 px-4 py-3 border border-dashed border-[#2C2C2C] rounded-lg text-gray-500 hover:border-[#C084FC]/50 hover:text-[#C084FC] transition-colors"><FileDown size={16} /><span className="text-sm font-medium">From Template</span></button>
+                    )}
+                  </div>
+                </div>
+              </Section>
+            );
 
-          <button
-            onClick={() => setShowTaskPalette(true)}
-            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
-              rounded-lg text-gray-500 hover:border-[#39FF14]/50 hover:text-[#39FF14] transition-colors"
-          >
-            <Plus size={16} />
-            <span className="text-sm font-medium">Add Task</span>
-          </button>
-        </div>
-      </Section>
+          case 'preview':
+            return (
+              <Section key={key} title="Milestone Preview" icon={Eye} defaultOpen={tasks.length > 0 || rewards.length > 0} {...sectionProps}>
+                <MilestonePreview tasks={tasks} rewards={rewards} totalLevels={pass.total_levels || 0} xpPerLevel={pass.xp_per_level || 0} />
+              </Section>
+            );
 
-      {/* ─── Rewards ─────────────────────────────────────────────── */}
-      <Section title="Level Rewards" icon={Gift} count={rewards.length}>
-        <div className="space-y-2 pt-4">
-          {rewards.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              <Gift size={32} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No rewards yet. Add milestone rewards at level thresholds.</p>
-            </div>
-          )}
+          default:
+            return null;
+        }
+      })}
 
-          {rewards.map((reward, i) => (
-            <RewardCard
-              key={reward.id}
-              reward={reward}
-              onChange={(updated) => updateReward(i, updated)}
-              onDelete={() => deleteReward(i)}
-            />
-          ))}
-
-          <button
-            onClick={addReward}
-            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
-              rounded-lg text-gray-500 hover:border-[#FFD700]/50 hover:text-[#FFD700] transition-colors"
-          >
-            <Plus size={16} />
-            <span className="text-sm font-medium">Add Reward</span>
-          </button>
-        </div>
-      </Section>
-
-      {/* ─── Special Reward (Completion Prize) ───────────────────── */}
-      <Section title="Special Reward" icon={Trophy} badge="Completion Prize">
-        <div className="space-y-4 pt-4">
-          <p className="text-xs text-gray-500">
-            The special reward is granted when a player completes the entire pass. This is the "boss drop" — the big incentive.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Field label="Reward Name">
-              <TextInput value={pass.special_reward_name} onChange={(v) => updatePass('special_reward_name', v)} placeholder="e.g., THE FINAL BOSS" />
-            </Field>
-            <Field label="Granted Character">
-              <Select
-                value={pass.special_reward_character_id}
-                onChange={(v) => updatePass('special_reward_character_id', v)}
-                placeholder="None (cosmetic reward only)"
-                options={characters.map(c => ({ value: c.id, label: c.name }))}
-              />
-            </Field>
-          </div>
-          <Field label="Description">
-            <TextArea
-              value={pass.special_reward_description}
-              onChange={(v) => updatePass('special_reward_description', v)}
-              placeholder="Describe the ultimate reward"
-            />
-          </Field>
-          <Field label="Reward Image">
-            <ImageUploader
-              value={pass.special_reward_image_url}
-              onChange={(v) => updatePass('special_reward_image_url', v)}
-              pathPrefix="pass-special"
-              label="Special reward"
-            />
-          </Field>
-
-          {/* ── Completion Reward Preview (consumer-facing copy) ──── */}
-          <div className="border-t border-[#2C2C2C] pt-4 mt-4">
-            <p className="text-xs text-gray-500 uppercase tracking-wider mb-3 font-bold">Consumer-Facing Completion Copy</p>
-            <p className="text-xs text-gray-600 mb-3">
-              These are shown on the Portal Pass detail page as the completion incentive. Can differ from the internal reward name above.
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="Completion Reward Title" hint="e.g., UNLOCK THE FINAL BOSS">
-                <TextInput value={pass.completion_reward_title} onChange={(v) => updatePass('completion_reward_title', v)} placeholder="e.g., UNLOCK THE FINAL BOSS" />
-              </Field>
-              <Field label="Completion Reward Description">
-                <TextArea
-                  value={pass.completion_reward_description}
-                  onChange={(v) => updatePass('completion_reward_description', v)}
-                  placeholder="What players see as the completion incentive"
-                  rows={2}
-                />
-              </Field>
-            </div>
-          </div>
-        </div>
-      </Section>
-
-      {/* ─── NEW: Brand Promo Sections ───────────────────────────── */}
-      <Section title="Brand Promo Sections" icon={Megaphone} count={pass.promo_sections.length} defaultOpen={false}>
-        <div className="space-y-2 pt-4">
-          <p className="text-xs text-gray-500 mb-3">
-            Flexible promotional blocks shown on the Portal Pass detail page — store locators, shop links, partner callouts, etc.
-          </p>
-
-          {pass.promo_sections.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
-              <Megaphone size={28} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No promo sections yet. Add brand promotional blocks.</p>
-            </div>
-          )}
-
-          {pass.promo_sections.map((block, i) => (
-            <PromoBlockCard
-              key={i}
-              block={block}
-              index={i}
-              total={pass.promo_sections.length}
-              onChange={(updated) => updatePromoBlock(i, updated)}
-              onDelete={() => deletePromoBlock(i)}
-              onMoveUp={() => movePromoBlock(i, -1)}
-              onMoveDown={() => movePromoBlock(i, 1)}
-            />
-          ))}
-
-          <button
-            onClick={addPromoBlock}
-            className="w-full flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
-              rounded-lg text-gray-500 hover:border-[#C084FC]/50 hover:text-[#C084FC] transition-colors"
-          >
-            <Plus size={16} />
-            <span className="text-sm font-medium">Add Promo Section</span>
-          </button>
-        </div>
-      </Section>
-
-      {/* ─── NEW: Task Explainers ────────────────────────────────── */}
+      {/* Template Picker Modal */}
       {showTemplatePicker && (
         <TemplatePicker
           templates={explainerTemplates}
@@ -2226,65 +2100,6 @@ export default function PortalPassBuilderPage() {
           onDelete={deleteTemplate}
         />
       )}
-      <Section title="Task Explainers" icon={BookOpen} count={pass.task_explainers.length} defaultOpen={false}>
-        <div className="space-y-2 pt-4">
-          <p className="text-xs text-gray-500 mb-3">
-            Educational how-to blocks that explain features to players — "What is QR scanning?", "How lending works", etc.
-          </p>
-
-          {pass.task_explainers.length === 0 && (
-            <div className="text-center py-6 text-gray-500">
-              <BookOpen size={28} className="mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No explainers yet. Help players understand what they need to do.</p>
-            </div>
-          )}
-
-          {pass.task_explainers.map((block, i) => (
-            <ExplainerBlockCard
-              key={i}
-              block={block}
-              index={i}
-              total={pass.task_explainers.length}
-              onChange={(updated) => updateExplainerBlock(i, updated)}
-              onDelete={() => deleteExplainerBlock(i)}
-              onMoveUp={() => moveExplainerBlock(i, -1)}
-              onMoveDown={() => moveExplainerBlock(i, 1)}
-              onSaveAsTemplate={saveAsTemplate}
-            />
-          ))}
-
-          <div className="flex gap-2">
-            <button
-              onClick={addExplainerBlock}
-              className="flex-1 flex items-center justify-center gap-2 py-3 border border-dashed border-[#2C2C2C]
-                rounded-lg text-gray-500 hover:border-[#00BFFF]/50 hover:text-[#00BFFF] transition-colors"
-            >
-              <Plus size={16} />
-              <span className="text-sm font-medium">Add Explainer</span>
-            </button>
-            {explainerTemplates.length > 0 && (
-              <button
-                onClick={() => setShowTemplatePicker(true)}
-                className="flex items-center gap-2 px-4 py-3 border border-dashed border-[#2C2C2C]
-                  rounded-lg text-gray-500 hover:border-[#C084FC]/50 hover:text-[#C084FC] transition-colors"
-              >
-                <FileDown size={16} />
-                <span className="text-sm font-medium">From Template</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </Section>
-
-      {/* ─── Milestone Preview ───────────────────────────────────── */}
-      <Section title="Milestone Preview" icon={Eye} defaultOpen={tasks.length > 0 || rewards.length > 0}>
-        <MilestonePreview
-          tasks={tasks}
-          rewards={rewards}
-          totalLevels={pass.total_levels || 0}
-          xpPerLevel={pass.xp_per_level || 0}
-        />
-      </Section>
 
       {/* ─── Danger Zone ─────────────────────────────────────────── */}
       {!isNew && (

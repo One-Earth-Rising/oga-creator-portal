@@ -15,6 +15,24 @@ export default function ScansPage() {
   const [sortDir, setSortDir] = useState('desc')
   const [copiedId, setCopiedId] = useState(null)
   const [cardAsset, setCardAsset] = useState(null)
+  const [historyAsset, setHistoryAsset] = useState(null)
+  const [historyData, setHistoryData] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+
+  async function viewHistory(asset) {
+    setHistoryAsset(asset)
+    setHistoryLoading(true)
+    try {
+      const { data, error } = await supabase.rpc('get_asset_ownership_history', { p_asset_id: asset.asset_id })
+      if (error) throw error
+      setHistoryData(data || [])
+    } catch (err) {
+      console.error('Failed to load history:', err)
+      setHistoryData([])
+    } finally {
+      setHistoryLoading(false)
+    }
+  }
 
   useEffect(() => {
     loadScans()
@@ -267,6 +285,16 @@ export default function ScansPage() {
           onClose={() => setCardAsset(null)}
           onCopy={copyToClipboard}
           copiedId={copiedId}
+          onViewHistory={(a) => { setCardAsset(null); viewHistory(a); }}
+        />
+      )}
+
+      {historyAsset && (
+        <OwnershipHistoryModal
+          asset={historyAsset}
+          history={historyData}
+          loading={historyLoading}
+          onClose={() => { setHistoryAsset(null); setHistoryData([]); }}
         />
       )}
     </div>
@@ -277,7 +305,7 @@ export default function ScansPage() {
 // ASSET CARD MODAL (shared pattern from MintedAssetsPage)
 // ═══════════════════════════════════════════════════════════════
 
-function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
+function AssetCardModal({ asset, onClose, onCopy, copiedId, onViewHistory }) {
   const rarityGlow = {
     Common: 'border-white/20',
     Uncommon: 'border-green-500/40 shadow-[0_0_30px_rgba(34,197,94,0.15)]',
@@ -296,14 +324,14 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
 
   const imageUrl = asset.hero_image
     ? (asset.hero_image.startsWith('http')
-        ? asset.hero_image
-        : `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/characters/${asset.hero_image}`)
+      ? asset.hero_image
+      : `https://jmbzrbteizvuqwukojzu.supabase.co/storage/v1/object/public/characters/${asset.hero_image}`)
     : null
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/85" />
-      
+
       {/* 1. MODAL WRAPPER FIX: Added flex-col and overflow-x-hidden */}
       <div
         className={`relative flex flex-col bg-oga-charcoal border-2 rounded-2xl max-w-sm w-full max-h-[90vh] overflow-y-auto overflow-x-hidden ${rarityGlow[asset.rarity] || rarityGlow.Common}`}
@@ -402,6 +430,90 @@ function AssetCardModal({ asset, onClose, onCopy, copiedId }) {
               <ExternalLink size={12} /> Verify
             </a>
           </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function OwnershipHistoryModal({ asset, history, loading, onClose }) {
+  const statusConfig = {
+    active: { label: 'CURRENT OWNER', color: 'text-oga-green', bg: 'bg-oga-green/10', dot: 'bg-oga-green' },
+    transferred: { label: 'TRANSFERRED', color: 'text-blue-400', bg: 'bg-blue-400/10', dot: 'bg-blue-400' },
+    traded_away: { label: 'TRADED AWAY', color: 'text-purple-400', bg: 'bg-purple-400/10', dot: 'bg-purple-400' },
+    inactive: { label: 'INACTIVE', color: 'text-white/30', bg: 'bg-white/5', dot: 'bg-white/30' },
+  }
+
+  const acquiredLabels = {
+    code_redemption: 'Code Redemption',
+    trade: 'Trade',
+    lend: 'Lend',
+    direct_grant: 'Direct Grant',
+    starter: 'Starter Character',
+    purchase: 'Purchase',
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/85" />
+      <div
+        className="relative bg-oga-charcoal border border-oga-grey rounded-2xl max-w-md w-full max-h-[80vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 z-10 p-1.5 bg-black/60 hover:bg-black/80 rounded-full transition-colors"
+        >
+          <X size={14} className="text-white/50" />
+        </button>
+
+        <div className="p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <History size={16} className="text-oga-green" />
+            <h2 className="text-sm font-bold uppercase tracking-wider">Ownership History</h2>
+          </div>
+          <div className="text-xs text-white/30 mb-4">
+            {asset.character_name} <span className="text-oga-green font-mono">#{asset.mint_number}</span>
+          </div>
+
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="w-6 h-6 border-2 border-oga-green border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : history.length === 0 ? (
+            <div className="text-center text-white/20 py-8 text-sm">No ownership records found</div>
+          ) : (
+            <div className="relative pl-6">
+              <div className="absolute left-2 top-2 bottom-2 w-px bg-oga-grey" />
+              {history.map((record, i) => {
+                const cfg = statusConfig[record.status] || statusConfig.inactive
+                return (
+                  <div key={record.id || i} className="relative mb-4 last:mb-0">
+                    <div className={`absolute -left-4 top-1.5 w-2.5 h-2.5 rounded-full ${cfg.dot} ${record.status === 'active' ? 'ring-2 ring-oga-green/30' : ''}`} />
+                    <div className="bg-oga-black rounded-lg border border-oga-grey/30 p-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-sm">{record.owner_name || record.owner_email || 'Unknown'}</span>
+                        <span className={`text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded ${cfg.bg} ${cfg.color}`}>
+                          {cfg.label}
+                        </span>
+                      </div>
+                      {record.owner_email && (
+                        <div className="text-[10px] text-white/25 mb-1">{record.owner_email}</div>
+                      )}
+                      <div className="flex items-center gap-2 text-[10px] text-white/20">
+                        {record.acquired_via && (
+                          <span>{acquiredLabels[record.acquired_via] || record.acquired_via}</span>
+                        )}
+                        {record.created_at && (
+                          <span>• {new Date(record.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1018,17 +1018,15 @@ function MilestonePreview({ tasks, rewards, totalLevels, xpPerLevel }) {
         <div className="flex items-center gap-1 bg-[#0A0A0A] rounded-lg p-0.5 border border-[#2C2C2C]">
           <button
             onClick={() => setViewMode('table')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-              viewMode === 'table' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-gray-500 hover:text-gray-300'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${viewMode === 'table' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-gray-500 hover:text-gray-300'
+              }`}
           >
             <Table size={12} /> Table
           </button>
           <button
             onClick={() => setViewMode('track')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${
-              viewMode === 'track' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-gray-500 hover:text-gray-300'
-            }`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-bold transition-colors ${viewMode === 'track' ? 'bg-[#39FF14]/10 text-[#39FF14]' : 'text-gray-500 hover:text-gray-300'
+              }`}
           >
             <BarChart3 size={12} /> Track
           </button>
@@ -1203,7 +1201,7 @@ export default function PortalPassBuilderPage() {
     try {
       const saved = localStorage.getItem('oga_pp_section_order');
       if (saved) return JSON.parse(saved);
-    } catch {}
+    } catch { }
     return ['settings', 'hero', 'cta', 'characters', 'tasks', 'rewards', 'special', 'promo', 'explainers', 'preview'];
   });
 
@@ -1503,7 +1501,7 @@ export default function PortalPassBuilderPage() {
     );
   };
 
-// ── Explainer Template Functions ──────────────────────────────
+  // ── Explainer Template Functions ──────────────────────────────
   const saveAsTemplate = async (block) => {
     try {
       const { data, error } = await supabase.rpc('save_explainer_template', {
@@ -1643,8 +1641,8 @@ export default function PortalPassBuilderPage() {
         });
         if (rewardError) throw rewardError;
       }
-      
-// Duplicate pass characters
+
+      // Duplicate pass characters
       if (passCharacters.length > 0) {
         await supabase.rpc('set_pass_characters', {
           p_pass_id: newId,
@@ -1912,11 +1910,11 @@ export default function PortalPassBuilderPage() {
                         <TextInput value={pass.brand_name} onChange={(v) => updatePass('brand_name', v)} placeholder="e.g., Final Boss Sour" />
                         <p className="text-[10px] text-gray-600 mt-1">Select a brand above to auto-fill, or type manually</p>
                       </Field>
-                      <Field label="Brand Logo">
+                      <Field label="Brand Logo" hint="Shown on character detail hero (top-right). Use the plain brand logo.">
                         <ImageUploader value={pass.brand_logo_url} onChange={(v) => updatePass('brand_logo_url', v)} pathPrefix="brands" label="Brand logo" />
                       </Field>
-                      <Field label="Brand Card Logo">
-                        <ImageUploader value={pass.brand_card_logo_url} onChange={(v) => updatePass('brand_card_logo_url', v)} pathPrefix="brands" label="Brand card logo" />
+                      <Field label="Co-Brand Card Logo" hint="Shown on Portal Pass cards & pass detail page. Use the Brand×OGA mashup logo.">
+                        <ImageUploader value={pass.brand_card_logo_url} onChange={(v) => updatePass('brand_card_logo_url', v)} pathPrefix="brands" label="Co-brand card logo" />
                       </Field>
                     </div>
                   </div>

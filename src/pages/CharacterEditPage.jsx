@@ -73,7 +73,7 @@ export default function CharacterEditPage() {
         rarity: char.rarity || '',
         accent_color: char.accent_color || '#39FF14',
         hero_image: char.hero_image || '',
-        thumbnail: char.thumbnail || '',
+        thumbnail: char.thumbnail_image || '',
         is_active: char.is_active ?? true,
         sort_order: char.sort_order ?? 0,
         ip_brand_id: char.ip_brand_id || '',
@@ -353,7 +353,7 @@ export default function CharacterEditPage() {
             </div>
           </div>
 
-{/* Multigameverse — Game Variations (only for existing characters) */}
+          {/* Multigameverse — Game Variations (only for existing characters) */}
           {!isNew && form.id && (
             <GameVariationsPanel characterId={form.id} />
           )}
@@ -383,21 +383,19 @@ export default function CharacterEditPage() {
                 <div className="flex items-center gap-4 mt-2">
                   <button
                     onClick={() => updateField('is_active', true)}
-                    className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase tracking-wider border transition-all ${
-                      form.is_active
+                    className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase tracking-wider border transition-all ${form.is_active
                         ? 'bg-oga-green/10 border-oga-green text-oga-green'
                         : 'border-oga-grey text-white/30 hover:border-white/30'
-                    }`}
+                      }`}
                   >
                     Active
                   </button>
                   <button
                     onClick={() => updateField('is_active', false)}
-                    className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase tracking-wider border transition-all ${
-                      !form.is_active
+                    className={`flex-1 py-3 rounded-lg text-sm font-bold uppercase tracking-wider border transition-all ${!form.is_active
                         ? 'bg-red-400/10 border-red-400 text-red-400'
                         : 'border-oga-grey text-white/30 hover:border-white/30'
-                    }`}
+                      }`}
                   >
                     Inactive
                   </button>
@@ -430,9 +428,9 @@ export default function CharacterEditPage() {
         </div>
       </div>
 
-{/* Spacer for sticky bottom bar */}
+      {/* Spacer for sticky bottom bar */}
       <div className="h-24" />
-      
+
       {/* Sticky Bottom Save Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-oga-black/95 backdrop-blur border-t border-oga-grey z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-end gap-4">
